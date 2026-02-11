@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProBuild Ghana</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg sticky-top border-bottom" style="background-color: #fff; height: 70px;">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}" style="font-size: 1.5rem;">
+                <i class="fas fa-hard-hat" style="color: var(--brand-orange);"></i> PROBUILD <span style="color: var(--brand-orange);">GH</span>
+            </a>
+
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <i class="fas fa-bars text-dark"></i>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    
+                    <li class="nav-item"><a class="nav-link text-dark fw-medium mx-2" href="{{ url_for('index') }}">Find Pros</a></li>
+                    
+                    {% if session.user_id %}
+                        
+                        {% if session.role == 'artisan' %}
+                            <!-- Artisan-specific links -->
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-medium mx-2" href="{{ url_for('artisan_portal') }}">
+                                    <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-warning fw-bold mx-2" href="{{ url_for('check_status_page') }}">
+                                    <i class="fas fa-sync-alt me-1"></i> Check Status
+                                </a>
+                            </li>
+                        {% elif session.role == 'general' %}
+                            <!-- Client-specific links -->
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-medium mx-2" href="{{ url_for('dashboard') }}">
+                                    <i class="fas fa-tachometer-alt me-1"></i> My Activity
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="btn btn-warning text-white fw-bold btn-sm rounded-pill px-3 mx-2" href="{{ url_for('join_pro') }}">
+                                    <i class="fas fa-hard-hat me-1"></i> Become a Pro
+                                </a>
+                            </li>
+                        {% elif session.role == 'admin' %}
+                            <!-- Admin-specific links -->
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-medium mx-2" href="{{ url_for('admin_dashboard') }}">
+                                    <i class="fas fa-shield-alt me-1"></i> Admin Panel
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        <li class="nav-item dropdown ms-2">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown">
+                                <div class="bg-light rounded-circle d-flex justify-content-center align-items-center border" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-user text-dark"></i>
+                                </div>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="border-radius: 12px;">
+                                <li>
+                                    <h6 class="dropdown-header text-muted">
+                                        Signed in as<br>
+                                        <strong>{{ session.user_name }}</strong><br>
+                                        <small class="text-{% if session.role == 'artisan' %}warning{% elif session.role == 'admin' %}danger{% else %}success{% endif %}">
+                                            {{ session.role|title }}
+                                        </small>
+                                    </h6>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% if session.role == 'artisan' %}
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ url_for('artisan_portal') }}">
+                                        <i class="fas fa-tachometer-alt me-2 text-warning"></i> Artisan Portal
+                                    </a>
+                                </li>
+                                {% elif session.role == 'general' %}
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ url_for('dashboard') }}">
+                                        <i class="fas fa-history me-2 text-muted"></i> My Activity
+                                    </a>
+                                </li>
+                                {% elif session.role == 'admin' %}
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ url_for('admin_dashboard') }}">
+                                        <i class="fas fa-shield-alt me-2 text-danger"></i> Admin Dashboard
+                                    </a>
+                                </li>
+                                {% endif %}
+                                <li>
+                                    <a class="dropdown-item py-2" href="#" data-bs-toggle="modal" data-bs-target="#profileModal">
+                                        <i class="fas fa-cog me-2 text-muted"></i> Profile Settings
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item py-2 text-danger" href="{{ url_for('logout') }}">
+                                        <i class="fas fa-sign-out-alt me-2"></i> Logout
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                    {% else %}
+                        <!-- Not logged in - show both login options -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-dark fw-medium mx-2" href="#" id="loginDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-sign-in-alt me-1"></i> Login
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="border-radius: 12px;">
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ url_for('login') }}">
+                                        <i class="fas fa-user me-2 text-primary"></i> Client Login
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ url_for('artisan_login_page') }}">
+                                        <i class="fas fa-hard-hat me-2 text-warning"></i> Artisan Login
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ url_for('admin_login') }}">
+                                        <i class="fas fa-shield-alt me-2 text-danger"></i> Admin Login
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        
+                        <li class="nav-item dropdown">
+                            <a class="btn btn-dark fw-bold btn-sm rounded-pill px-4 ms-2 dropdown-toggle" href="#" id="registerDropdown" role="button" data-bs-toggle="dropdown">
+                                Join Now
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="border-radius: 12px;">
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ url_for('register') }}">
+                                        <i class="fas fa-user-plus me-2 text-primary"></i> Register as Client
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ url_for('join_pro') }}">
+                                        <i class="fas fa-hard-hat me-2 text-warning"></i> Register as Artisan
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div style="min-height: 80vh;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="container mt-3">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else 'success' if category == 'success' else 'warning' }} alert-dismissible fade show">
+                            <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Profile Modal (for all users) -->
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Profile Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form action="{{ url_for('update_profile') }}" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted">Full Name</label>
+                            <input type="text" name="full_name" class="form-control" value="{{ session.user_name }}" required>
+                        </div>
+                        {% if session.role == 'artisan' %}
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted">Phone Number</label>
+                            <input type="text" name="phone" class="form-control" placeholder="Your registered phone" required>
+                        </div>
+                        {% else %}
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted">Email Address</label>
+                            <input type="email" name="email" class="form-control" placeholder="Your email" required>
+                        </div>
+                        {% endif %}
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-dark rounded-pill fw-bold">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-white border-top text-center py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <h6 class="fw-bold mb-2">For Clients</h6>
+                    <a href="{{ url_for('index') }}" class="text-muted small d-block">Find Artisans</a>
+                    <a href="{{ url_for('register') }}" class="text-muted small d-block">Create Account</a>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <h6 class="fw-bold mb-2">For Artisans</h6>
+                    <a href="{{ url_for('join_pro') }}" class="text-muted small d-block">Register as Pro</a>
+                    <a href="{{ url_for('artisan_login_page') }}" class="text-muted small d-block">Artisan Login</a>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <h6 class="fw-bold mb-2">Company</h6>
+                    <a href="#" class="text-muted small d-block">About Us</a>
+                    <a href="#" class="text-muted small d-block">Contact Support</a>
+                </div>
+            </div>
+            <hr class="my-3">
+            <p class="mb-0 text-muted small">&copy; 2026 ProBuild & Train Ghana. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

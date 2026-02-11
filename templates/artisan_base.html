@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Artisan Portal - ProBuild{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --brand-orange: #FF4500;
+            --brand-dark: #0a0a0a;
+            --brand-light: #f8f9fa;
+        }
+        
+        body { 
+            background-color: #f4f6f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .artisan-navbar {
+            background: linear-gradient(135deg, var(--brand-dark) 0%, #1a1a1a 100%);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 15px 0;
+        }
+        
+        .artisan-navbar .navbar-brand {
+            color: white !important;
+            font-weight: 800;
+            font-size: 1.5rem;
+        }
+        
+        .artisan-navbar .nav-link {
+            color: rgba(255,255,255,0.8);
+            font-weight: 500;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        
+        .artisan-navbar .nav-link:hover,
+        .artisan-navbar .nav-link.active {
+            color: white;
+            background: rgba(255,69,0,0.2);
+        }
+        
+        .artisan-profile-card {
+            background: white;
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        
+        .artisan-stats-card {
+            background: white;
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s;
+        }
+        
+        .artisan-stats-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .job-card {
+            border-left: 4px solid var(--brand-orange);
+            transition: all 0.3s;
+        }
+        
+        .job-card:hover {
+            box-shadow: 0 5px 20px rgba(255,69,0,0.1);
+        }
+        
+        footer {
+            background: var(--brand-dark);
+            color: white;
+            margin-top: 50px;
+        }
+        
+        .notification-badge {
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg artisan-navbar">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('artisan_dashboard') }}">
+                <i class="fas fa-hard-hat" style="color: var(--brand-orange);"></i> PROBUILD <span style="color: var(--brand-orange);">ARTISAN</span>
+            </a>
+            
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <i class="fas fa-bars text-white"></i>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'artisan_dashboard' %}active{% endif %}" href="{{ url_for('artisan_dashboard') }}">
+                            <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'artisan_jobs' %}active{% endif %}" href="{{ url_for('artisan_jobs') }}">
+                            <i class="fas fa-briefcase me-1"></i> Available Jobs
+                            {% if available_jobs_count and available_jobs_count > 0 %}
+                            <span class="notification-badge">{{ available_jobs_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'artisan_my_jobs' %}active{% endif %}" href="{{ url_for('artisan_my_jobs') }}">
+                            <i class="fas fa-tasks me-1"></i> My Jobs
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'artisan_earnings' %}active{% endif %}" href="{{ url_for('artisan_earnings') }}">
+                            <i class="fas fa-money-bill-wave me-1"></i> Earnings
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'artisan_location' %}active{% endif %}" href="{{ url_for('artisan_location') }}">
+                            <i class="fas fa-map-marked-alt me-1"></i> Location
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'artisan_profile' %}active{% endif %}" href="{{ url_for('artisan_profile') }}">
+                            <i class="fas fa-user-cog me-1"></i> Profile
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown ms-3">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+                            <img src="{{ artisan.image_url|default('https://ui-avatars.com/api/?name=' + artisan.full_name|urlencode + '&background=FF4500&color=fff') }}" 
+                                 class="rounded-circle me-2" width="32" height="32" style="object-fit: cover;">
+                            {{ artisan.full_name|truncate(15) }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><h6 class="dropdown-header">{{ artisan.full_name }}</h6></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('index') }}">
+                                    <i class="fas fa-home me-2"></i> Home Page
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('logout') }}">
+                                    <i class="fas fa-sign-out-alt me-2 text-danger"></i> Logout
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container mt-3">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' if category == 'success' else 'warning' }} alert-dismissible fade show">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main class="container py-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="fw-bold mb-3">Artisan Support</h6>
+                    <p class="small mb-2">
+                        <i class="fas fa-phone me-2"></i> Support: 055-123-4567
+                    </p>
+                    <p class="small mb-2">
+                        <i class="fas fa-envelope me-2"></i> Email: support@probuildgh.com
+                    </p>
+                    <p class="small">
+                        <i class="fas fa-clock me-2"></i> Available: 24/7
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <h6 class="fw-bold mb-3">Quick Links</h6>
+                    <a href="{{ url_for('index') }}" class="text-white d-block small mb-2">
+                        <i class="fas fa-external-link-alt me-1"></i> Home Page
+                    </a>
+                    <a href="{{ url_for('artisan_dashboard') }}" class="text-white d-block small mb-2">
+                        <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+                    </a>
+                    <a href="{{ url_for('logout') }}" class="text-white d-block small">
+                        <i class="fas fa-sign-out-alt me-1"></i> Logout
+                    </a>
+                </div>
+            </div>
+            <hr class="my-3" style="border-color: rgba(255,255,255,0.1);">
+            <p class="text-center mb-0 small">
+                &copy; 2026 ProBuild Ghana. All artisan rights reserved.
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-dismiss alerts after 5 seconds
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                if (alert.classList.contains('show')) {
+                    alert.classList.remove('show');
+                    setTimeout(() => alert.remove(), 150);
+                }
+            });
+        }, 5000);
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

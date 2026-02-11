@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            
+            <div class="text-center mb-4">
+                <span class="fa-stack fa-2x mb-2">
+                    <i class="fas fa-circle fa-stack-2x text-warning"></i>
+                    <i class="fas fa-id-card fa-stack-1x text-dark"></i>
+                </span>
+                <h2 class="fw-bold">Pro Registration</h2>
+                <p class="text-muted">Step 1 of 3: Profile Submission</p>
+                <div class="progress" style="height: 5px;">
+                    <div class="progress-bar bg-warning" role="progressbar" style="width: 33%;" aria-valuenow="33" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+
+            <!-- IMPORTANT NOTICE -->
+            <div class="alert alert-warning mb-4">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Important:</strong> After registration, you'll login with your <strong>phone number</strong> on the <strong>Artisan Login</strong> page.
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show mb-4">
+                            <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-body p-5">
+                    
+                    <form action="{{ url_for('artisan_register') }}" method="POST" enctype="multipart/form-data">
+                        
+                        <h6 class="fw-bold text-uppercase small text-muted mb-3">1. Identity & Login</h6>
+                        <div class="row g-2 mb-3">
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Full Name</label>
+                                <input type="text" name="full_name" class="form-control" placeholder="As on Ghana Card" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold">Phone (Login ID)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">+233</span>
+                                    <input type="tel" name="phone" class="form-control" placeholder="55XXXXXXX" pattern="[0-9]{9}" title="Enter 9 digits without the leading 0" required>
+                                </div>
+                                <small class="text-muted">You'll use this phone number to login</small>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold">Password</label>
+                                <input type="password" name="password" class="form-control" placeholder="Create a secure password" minlength="6" required>
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-uppercase small text-muted mb-3 mt-4">2. Location</h6>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold">Region</label>
+                                <select class="form-select" name="region" required>
+                                    <option value="" selected disabled>Select Region...</option>
+                                    <option value="Ahafo">Ahafo</option>
+                                    <option value="Ashanti">Ashanti</option>
+                                    <option value="Bono">Bono</option>
+                                    <option value="Bono East">Bono East</option>
+                                    <option value="Central">Central</option>
+                                    <option value="Eastern">Eastern</option>
+                                    <option value="Greater Accra">Greater Accra</option>
+                                    <option value="North East">North East</option>
+                                    <option value="Northern">Northern</option>
+                                    <option value="Oti">Oti</option>
+                                    <option value="Savannah">Savannah</option>
+                                    <option value="Upper East">Upper East</option>
+                                    <option value="Upper West">Upper West</option>
+                                    <option value="Volta">Volta</option>
+                                    <option value="Western">Western</option>
+                                    <option value="Western North">Western North</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold">Town/City</label>
+                                <input type="text" name="town" class="form-control" placeholder="e.g. Madina" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">GhanaPost GPS (Digital Address)</label>
+                                <input type="text" name="digital_address" class="form-control" placeholder="e.g. GA-123-4567">
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-uppercase small text-muted mb-3 mt-4">3. Verification Documents</h6>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Ghana Card Number</label>
+                            <input type="text" name="ghana_card_number" class="form-control" placeholder="GHA-000000000-0" pattern="GHA-\d{9}-\d" title="Format: GHA-123456789-0" required>
+                            <small class="text-muted">Format: GHA-123456789-0</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Upload Ghana Card Photo</label>
+                            <input type="file" name="ghana_card_file" class="form-control" accept="image/*,.pdf" onchange="previewImage(this, 'cardPreview')" required>
+                            <div class="mt-2 text-center">
+                                <img id="cardPreview" src="#" alt="Card Preview" class="img-fluid rounded border d-none" style="max-height: 150px;">
+                            </div>
+                            <small class="text-muted">Accepted: JPG, PNG, PDF (Max 5MB)</small>
+                        </div>
+
+                        <h6 class="fw-bold text-uppercase small text-muted mb-3 mt-4">4. Work Profile</h6>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Trade / Skill</label>
+                            <select class="form-select" name="trade_select" id="tradeSelect" onchange="toggleOtherTrade()" required>
+                                <option value="" selected disabled>Select your trade...</option>
+                                <option value="Plumber">Plumber</option>
+                                <option value="Carpenter">Carpenter</option>
+                                <option value="Electrician">Electrician</option>
+                                <option value="Mason">Mason</option>
+                                <option value="Painter">Painter</option>
+                                <option value="Welder">Welder</option>
+                                <option value="AC Technician">AC Technician</option>
+                                <option value="Tiler">Tiler</option>
+                                <option value="Steel Bender">Steel Bender</option>
+                                <option value="POP Designer">POP Designer</option>
+                                <option value="Other">Other (Specify Below)</option>
+                            </select>
+                            
+                            <input type="text" name="custom_trade" id="customTradeInput" class="form-control mt-2 d-none" placeholder="Enter your trade (e.g. Roofer)">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Base Service Fee (GH₵)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">GH₵</span>
+                                <input type="number" name="price_range" class="form-control" placeholder="e.g. 100" min="20" max="500" step="10" required>
+                            </div>
+                            <div class="form-text text-danger small">Max allowed base fee is GH₵ 500. Minimum is GH₵ 20.</div>
+                        </div>
+
+                        <div class="bg-light p-3 rounded-3 mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="has_certificate" id="certCheck" onchange="toggleCertUpload()">
+                                <label class="form-check-label fw-bold" for="certCheck">
+                                    I have a Trade Certificate (NVTI/Similar)
+                                </label>
+                            </div>
+                            <div id="certUploadDiv" class="mt-3 d-none">
+                                <label class="form-label small">Upload Certificate (Optional)</label>
+                                <input type="file" name="cert_file" class="form-control" accept="image/*,.pdf" onchange="previewImage(this, 'certPreview')">
+                                <div class="mt-2 text-center">
+                                    <img id="certPreview" src="#" alt="Cert Preview" class="img-fluid rounded border d-none" style="max-height: 150px;">
+                                </div>
+                                <div class="text-success small mt-1"><i class="fas fa-users"></i> Enables "Master" status with Apprentices.</div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-dark btn-lg fw-bold shadow-sm">
+                                <i class="fas fa-paper-plane me-2"></i> Submit for Verification
+                            </button>
+                        </div>
+
+                        <div class="text-center mt-4 pt-3 border-top">
+                            <p class="text-muted small mb-2">
+                                <i class="fas fa-info-circle text-warning me-1"></i>
+                                After submission, your documents will be reviewed within 24 hours.
+                            </p>
+                            <p class="text-muted small">
+                                Already registered? 
+                                <a href="{{ url_for('artisan_login_page') }}" class="text-warning fw-bold">Login here</a>
+                            </p>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+
+            <!-- Registration Process Info -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3">Registration Process:</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="text-center">
+                                <div class="bg-warning text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-1"></i>
+                                </div>
+                                <h6 class="fw-bold small">Submit Documents</h6>
+                                <p class="text-muted small mb-0">Admin reviews Ghana Card & details</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="text-center">
+                                <div class="bg-secondary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-2"></i>
+                                </div>
+                                <h6 class="fw-bold small">Pay Subscription</h6>
+                                <p class="text-muted small mb-0">GH₵ 50/month after approval</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="text-center">
+                                <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-3"></i>
+                                </div>
+                                <h6 class="fw-bold small">Go Live!</h6>
+                                <p class="text-muted small mb-0">Start receiving job requests</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // Toggle Certificate Upload Section
+    function toggleCertUpload() {
+        const checkbox = document.getElementById('certCheck');
+        const div = document.getElementById('certUploadDiv');
+        if (checkbox.checked) {
+            div.classList.remove('d-none');
+        } else {
+            div.classList.add('d-none');
+        }
+    }
+
+    // Toggle "Other" Trade Input
+    function toggleOtherTrade() {
+        const select = document.getElementById('tradeSelect');
+        const input = document.getElementById('customTradeInput');
+        
+        if (select.value === 'Other') {
+            input.classList.remove('d-none');
+            input.required = true;
+        } else {
+            input.classList.add('d-none');
+            input.required = false;
+        }
+    }
+
+    // Image Preview Function
+    function previewImage(input, previewId) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            
+            reader.onload = function(e) {
+                var preview = document.getElementById(previewId);
+                preview.src = e.target.result;
+                preview.classList.remove('d-none');
+            }
+            
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // Phone number formatting
+    document.querySelector('input[name="phone"]').addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length > 9) value = value.substring(0, 9);
+        e.target.value = value;
+    });
+
+    // Ghana Card formatting
+    document.querySelector('input[name="ghana_card_number"]').addEventListener('input', function(e) {
+        let value = e.target.value.toUpperCase().replace(/[^GHA0-9\-]/g, '');
+        e.target.value = value;
+    });
+</script>
+{% endblock %}

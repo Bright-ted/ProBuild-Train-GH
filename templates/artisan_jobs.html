@@ -1,0 +1,333 @@
+{% extends "artisan_base.html" %}
+
+{% block title %}Available Jobs - Artisan Portal{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    #jobsMap { 
+        height: 400px; 
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .job-distance {
+        color: #666;
+        font-size: 0.9em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="fw-bold">Available Jobs</h2>
+        <p class="text-muted">Find and accept jobs near your location</p>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-warning" onclick="refreshJobs()">
+            <i class="fas fa-sync-alt me-2"></i> Refresh Jobs
+        </button>
+    </div>
+</div>
+
+<!-- Jobs Map -->
+<div class="card border-0 shadow-sm rounded-3 mb-4">
+    <div class="card-header bg-white">
+        <h5 class="fw-bold mb-0">
+            <i class="fas fa-map-marked-alt text-primary me-2"></i> Jobs Near You
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div id="jobsMap"></div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm rounded-3 mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Job Type</label>
+                <select class="form-select" onchange="filterJobs()">
+                    <option value="all">All Types</option>
+                    <option value="plumbing">Plumbing</option>
+                    <option value="electrical">Electrical</option>
+                    <option value="carpentry">Carpentry</option>
+                    <option value="masonry">Masonry</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Distance</label>
+                <select class="form-select" onchange="filterJobs()">
+                    <option value="all">Any Distance</option>
+                    <option value="5">Within 5km</option>
+                    <option value="10">Within 10km</option>
+                    <option value="20">Within 20km</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Budget</label>
+                <select class="form-select" onchange="filterJobs()">
+                    <option value="all">Any Budget</option>
+                    <option value="low">Under GH₵ 100</option>
+                    <option value="medium">GH₵ 100-300</option>
+                    <option value="high">Over GH₵ 300</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Sort By</label>
+                <select class="form-select" onchange="filterJobs()">
+                    <option value="newest">Newest First</option>
+                    <option value="nearest">Nearest First</option>
+                    <option value="highest">Highest Paying</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Jobs List -->
+<div class="card border-0 shadow-sm rounded-3">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0">
+            <i class="fas fa-list me-2"></i> Job Listings
+            <span class="badge bg-warning ms-2">{{ available_jobs|length }} Jobs</span>
+        </h5>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="showUrgentOnly" onchange="filterJobs()">
+            <label class="form-check-label" for="showUrgentOnly">
+                Urgent Jobs Only
+            </label>
+        </div>
+    </div>
+    
+    <div class="card-body p-0">
+        {% if available_jobs %}
+        <div class="list-group list-group-flush">
+            {% for job in available_jobs %}
+            <div class="list-group-item job-card p-4">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h5 class="fw-bold mb-1">{{ job.job_title }}</h5>
+                        <div class="mb-2">
+                            <span class="badge bg-secondary">{{ job.category|default('General') }}</span>
+                            {% if job.notify_others %}
+                            <span class="badge bg-danger">Urgent</span>
+                            {% endif %}
+                            <span class="badge bg-info">{{ job.distance }} km away</span>
+                        </div>
+                        <p class="text-muted mb-2">
+                            <i class="fas fa-user me-1"></i> {{ job.client_name }}
+                            <br>
+                            <i class="fas fa-map-marker-alt me-1"></i> {{ job.location }}
+                        </p>
+                        <small class="text-muted">
+                            <i class="fas fa-clock me-1"></i> Posted {{ job.created_at|time_ago }}
+                        </small>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="fw-bold text-dark">GH₵ {{ job.amount }}</h4>
+                            <small class="text-success">
+                                You get: GH₵ {{ (job.amount * 0.85)|int }}
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-success" onclick="acceptJob({{ job.id }})">
+                                <i class="fas fa-check me-2"></i> Accept Job
+                            </button>
+                            <button class="btn btn-outline-dark" onclick="viewJobDetails({{ job.id }})">
+                                <i class="fas fa-info-circle me-2"></i> View Details
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="declineJob({{ job.id }})">
+                                <i class="fas fa-times me-2"></i> Not Interested
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-search fa-3x text-muted opacity-50 mb-3"></i>
+            <h4>No Jobs Available</h4>
+            <p class="text-muted mb-4">Check back later or update your location to find more jobs.</p>
+            <div class="d-flex justify-content-center gap-3">
+                <button class="btn btn-warning" onclick="refreshJobs()">
+                    <i class="fas fa-sync-alt me-2"></i> Refresh
+                </button>
+                <a href="{{ url_for('artisan_location') }}" class="btn btn-outline-dark">
+                    <i class="fas fa-map-marker-alt me-2"></i> Update Location
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Job Details Modal -->
+<div class="modal fade" id="jobDetailsModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Job Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="jobDetailsContent">
+                <!-- Content loaded by JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    let map;
+    let markers = [];
+    
+    // Initialize map
+    document.addEventListener('DOMContentLoaded', function() {
+        initMap();
+        loadJobMarkers();
+    });
+    
+    function initMap() {
+        // Default to Accra coordinates
+        const defaultCoords = [5.6037, -0.1870];
+        map = L.map('jobsMap').setView(defaultCoords, 12);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Add user marker
+        L.marker(defaultCoords, {
+            icon: L.divIcon({
+                className: 'user-marker',
+                html: '<div style="background: #FF4500; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>',
+                iconSize: [30, 30]
+            })
+        })
+        .addTo(map)
+        .bindPopup('<strong>Your Location</strong>')
+        .openPopup();
+    }
+    
+    function loadJobMarkers() {
+        // Clear existing markers
+        markers.forEach(marker => map.removeLayer(marker));
+        markers = [];
+        
+        // Add job markers (simulated data)
+        {% for job in available_jobs %}
+        const jobCoords = [
+            5.6037 + (Math.random() * 0.05 - 0.025),
+            -0.1870 + (Math.random() * 0.05 - 0.025)
+        ];
+        
+        const marker = L.marker(jobCoords, {
+            icon: L.divIcon({
+                className: 'job-marker',
+                html: '<div style="background: #198754; width: 25px; height: 25px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>',
+                iconSize: [25, 25]
+            })
+        })
+        .addTo(map)
+        .bindPopup(`
+            <strong>${ {{ job.job_title|tojson }} }</strong><br>
+            ${ {{ job.location|tojson }} }<br>
+            GH₵ ${ {{ job.amount|tojson }} }<br>
+            <button class="btn btn-sm btn-success mt-2" onclick="acceptJob(${ {{ job.id|tojson }} })">
+                Accept Job
+            </button>
+        `);
+        
+        markers.push(marker);
+        {% endfor %}
+        
+        // Fit bounds if there are markers
+        if (markers.length > 0) {
+            const group = new L.featureGroup(markers);
+            map.fitBounds(group.getBounds().pad(0.1));
+        }
+    }
+    
+    function acceptJob(jobId) {
+        if (confirm('Accept this job? You will be responsible for completing it.')) {
+            fetch(`/artisan/accept-job/${jobId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Job accepted! Redirecting to your jobs...');
+                    window.location.href = '{{ url_for("artisan_my_jobs") }}';
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+        }
+    }
+    
+    function declineJob(jobId) {
+        if (confirm('Decline this job? It will be offered to other artisans.')) {
+            fetch(`/artisan/decline-job/${jobId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Job declined.');
+                    window.location.reload();
+                }
+            });
+        }
+    }
+    
+    function viewJobDetails(jobId) {
+        fetch(`/artisan/job-details/${jobId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('jobDetailsContent').innerHTML = `
+                        <h5>${data.job.job_title}</h5>
+                        <p><strong>Client:</strong> ${data.job.client_name}</p>
+                        <p><strong>Location:</strong> ${data.job.location}</p>
+                        <p><strong>Description:</strong> ${data.job.description || 'No additional details provided.'}</p>
+                        <p><strong>Amount:</strong> GH₵ ${data.job.amount}</p>
+                        <p><strong>You Earn:</strong> GH₵ ${(data.job.amount * 0.85).toFixed(2)} (after 15% commission)</p>
+                        <p><strong>Posted:</strong> ${data.job.created_at}</p>
+                        
+                        <div class="mt-4">
+                            <button class="btn btn-success me-2" onclick="acceptJob(${jobId})">
+                                <i class="fas fa-check me-2"></i> Accept Job
+                            </button>
+                            <button class="btn btn-outline-dark" data-bs-dismiss="modal">
+                                Close
+                            </button>
+                        </div>
+                    `;
+                    new bootstrap.Modal(document.getElementById('jobDetailsModal')).show();
+                }
+            });
+    }
+    
+    function filterJobs() {
+        // Simple filtering - in a real app, this would make a server request
+        alert('Filtering jobs...');
+    }
+    
+    function refreshJobs() {
+        window.location.reload();
+    }
+</script>
+{% endblock %}
+{% endblock %}

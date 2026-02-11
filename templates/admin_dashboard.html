@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Control - ProBuild</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #f4f6f9; }
+        .sidebar { min-height: 100vh; background: #212529; color: white; position: fixed; width: 16.666%; }
+        .main-content { margin-left: 16.666%; }
+        .nav-link { color: rgba(255,255,255,0.7); }
+        .nav-link.active { color: #fff; background: rgba(255,255,255,0.1); border-radius: 5px; }
+        .nav-link:hover { color: #fff; }
+        .card-stat { border: none; border-radius: 10px; transition: transform 0.2s; }
+        .card-stat:hover { transform: translateY(-5px); }
+        .table-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #ddd; }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+        
+        <div class="col-md-2 sidebar p-4 d-none d-md-block">
+            <h4 class="fw-bold mb-4"><i class="fas fa-shield-alt text-warning"></i> Admin</h4>
+            <ul class="nav flex-column gap-2">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#dashboard"><i class="fas fa-tachometer-alt me-2"></i> Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#doc-queue"><i class="fas fa-file-contract me-2"></i> Doc Verification</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#payment-queue"><i class="fas fa-credit-card me-2"></i> Payment Queue</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#active-pros"><i class="fas fa-list me-2"></i> Active Pros</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#finances"><i class="fas fa-chart-line me-2"></i> Finances</a>
+                </li>
+                
+                <li class="nav-item mt-5">
+                    <a class="nav-link text-danger" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i> Logout</a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="col-md-10 p-4 main-content">
+            
+            <div class="d-flex justify-content-between align-items-center mb-4" id="dashboard">
+                <div>
+                    <h3 class="fw-bold text-dark">Admin Dashboard</h3>
+                    <p class="text-muted mb-0">Overview of verification pipeline</p>
+                </div>
+                <div>
+                    <span class="me-2 text-dark fw-bold">{{ session.get('user_name', 'Admin') }}</span>
+                    <span class="badge bg-dark p-2">Super Admin</span>
+                </div>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="row g-3 mb-5">
+                <div class="col-md-3">
+                    <div class="card card-stat bg-warning text-dark p-3 shadow-sm h-100">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Pending Docs</h6>
+                                <h2 class="fw-bold mb-0">{{ pending_artisans|length }}</h2>
+                            </div>
+                            <i class="fas fa-file-invoice fa-2x opacity-50"></i>
+                        </div>
+                        <small class="opacity-75">Stage 1 Verification</small>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card card-stat bg-info text-white p-3 shadow-sm h-100">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Pending Payments</h6>
+                                <h2 class="fw-bold mb-0">{{ pending_payments|length }}</h2>
+                            </div>
+                            <i class="fas fa-money-bill-wave fa-2x opacity-50"></i>
+                        </div>
+                        <small class="opacity-75">Stage 2 Subscription</small>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card card-stat bg-success text-white p-3 shadow-sm h-100">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Live Artisans</h6>
+                                <h2 class="fw-bold mb-0">{{ verified_count }}</h2>
+                            </div>
+                            <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                        </div>
+                        <small class="opacity-75">Fully Active on Site</small>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card card-stat bg-dark text-white p-3 shadow-sm h-100">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Total Signups</h6>
+                                <h2 class="fw-bold mb-0">{{ total_pros }}</h2>
+                            </div>
+                            <i class="fas fa-users fa-2x opacity-50"></i>
+                        </div>
+                        <small class="opacity-75">All time registrations</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4 mb-5" id="doc-queue">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-warning"><i class="fas fa-clipboard-check me-2"></i> Stage 1: Document Verification</h5>
+                    <span class="badge bg-light text-dark border">{{ pending_artisans|length }} Pending</span>
+                </div>
+                <div class="card-body p-0 table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4">Applicant</th>
+                                <th>Trade</th>
+                                <th>Location</th>
+                                <th>Ghana Card</th>
+                                <th>Evidence</th>
+                                <th class="text-end pe-4">Decision</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for artisan in pending_artisans %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="ms-0">
+                                            <div class="fw-bold">{{ artisan.full_name }}</div>
+                                            <small class="text-muted">{{ artisan.phone }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="badge bg-secondary">{{ artisan.trade }}</span></td>
+                                <td>{{ artisan.town }}</td>
+                                <td class="text-monospace">{{ artisan.ghana_card_number }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#docModal{{ artisan.id }}">
+                                        View Uploads
+                                    </button>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <a href="{{ url_for('admin_approve', artisan_id=artisan.id) }}" class="btn btn-success btn-sm fw-bold shadow-sm" title="Approve Docs">
+                                        <i class="fas fa-check"></i> Approve Docs
+                                    </a>
+                                    <a href="{{ url_for('admin_reject', artisan_id=artisan.id) }}" class="btn btn-outline-danger btn-sm" onclick="return confirm('Permanently reject this application?')">
+                                        <i class="fas fa-times"></i>
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <div class="modal fade" id="docModal{{ artisan.id }}" tabindex="-1">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Verification: {{ artisan.full_name }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="row">
+                                                <div class="col-md-6 mb-3">
+                                                    <h6>Ghana Card</h6>
+                                                    <div class="bg-light border p-5 text-center text-muted rounded">
+                                                        <i class="fas fa-id-card fa-3x mb-2"></i><br>
+                                                        [Image Placeholder: {{ artisan.ghana_card_number }}]
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <h6>Trade Certificate</h6>
+                                                    {% if artisan.has_certificate %}
+                                                        <div class="bg-light border p-5 text-center text-success rounded">
+                                                            <i class="fas fa-certificate fa-3x mb-2"></i><br>
+                                                            Certified
+                                                        </div>
+                                                    {% else %}
+                                                        <div class="bg-light border p-5 text-center text-muted rounded">
+                                                            No Cert Uploaded
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <hr>
+                                            <p><strong>Digital Address:</strong> {{ artisan.digital_address }}</p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            <a href="{{ url_for('admin_approve', artisan_id=artisan.id) }}" class="btn btn-success">Approve Documents</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="fas fa-check-circle mb-2 fa-2x"></i><br>
+                                    No documents pending review.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4 mb-5" id="payment-queue">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-info"><i class="fas fa-wallet me-2"></i> Stage 2: Subscription Payments</h5>
+                    <span class="badge bg-light text-dark border">{{ pending_payments|length }} Pending</span>
+                </div>
+                <div class="card-body p-0 table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4">Artisan</th>
+                                <th>Contact</th>
+                                <th>Fee Due</th>
+                                <th>Status</th>
+                                <th class="text-end pe-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for artisan in pending_payments %}
+                            <tr>
+                                <td class="ps-4 fw-bold">{{ artisan.full_name }}</td>
+                                <td>{{ artisan.phone }}</td>
+                                <td>GH₵ 50.00</td>
+                                <td><span class="badge bg-warning text-dark">Awaiting Payment</span></td>
+                                <td class="text-end pe-4">
+                                    <a href="{{ url_for('admin_confirm_sub', artisan_id=artisan.id) }}" class="btn btn-primary btn-sm fw-bold shadow-sm">
+                                        <i class="fas fa-check-double me-1"></i> Confirm Payment
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    <i class="fas fa-piggy-bank mb-2 fa-2x"></i><br>
+                                    No pending subscription payments.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4 mb-5 opacity-50" id="active-pros">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="fw-bold mb-0 text-secondary"><i class="fas fa-users me-2"></i> Active Professionals List</h5>
+                </div>
+                <div class="card-body text-center py-5">
+                    <p class="text-muted">Feature coming soon: View, edit, and suspend currently active artisans.</p>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4 mb-5 opacity-50" id="finances">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="fw-bold mb-0 text-secondary"><i class="fas fa-chart-line me-2"></i> Financial Overview</h5>
+                </div>
+                <div class="card-body text-center py-5">
+                    <p class="text-muted">Feature coming soon: Track escrow payments and subscription revenue.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

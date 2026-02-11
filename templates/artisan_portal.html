@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artisan Portal - ProBuild</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <style>
+        :root {
+            --brand-orange: #FF4500;
+            --brand-dark: #0a0a0a;
+            --brand-light: #f8f9fa;
+        }
+        
+        body { 
+            background-color: #f4f6f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .sidebar { 
+            min-height: 100vh; 
+            background: linear-gradient(180deg, var(--brand-dark) 0%, #1a1a1a 100%);
+            color: white;
+            position: fixed;
+            width: 280px;
+            z-index: 1000;
+            box-shadow: 3px 0 15px rgba(0,0,0,0.1);
+        }
+        
+        .main-content { 
+            margin-left: 280px;
+            padding: 20px;
+        }
+        
+        .nav-link { 
+            color: rgba(255,255,255,0.7);
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin: 5px 15px;
+            transition: all 0.3s;
+        }
+        
+        .nav-link.active { 
+            color: white; 
+            background: rgba(255,69,0,0.2);
+            border-left: 4px solid var(--brand-orange);
+        }
+        
+        .nav-link:hover { 
+            color: white; 
+            background: rgba(255,255,255,0.1);
+            transform: translateX(5px);
+        }
+        
+        .stats-card {
+            background: white;
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .job-card {
+            border-left: 4px solid var(--brand-orange);
+            transition: all 0.3s;
+        }
+        
+        .job-card:hover {
+            box-shadow: 0 5px 20px rgba(255,69,0,0.1);
+        }
+        
+        #map { 
+            height: 500px; 
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .profile-img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .earning-chart {
+            height: 300px;
+            position: relative;
+        }
+        
+        .badge-online {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        @media (max-width: 992px) {
+            .sidebar {
+                width: 250px;
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Mobile Toggle Button -->
+<button class="btn btn-warning d-lg-none position-fixed" style="z-index: 1050; top: 15px; left: 15px;" onclick="toggleSidebar()">
+    <i class="fas fa-bars"></i>
+</button>
+
+<div class="container-fluid">
+    <!-- Sidebar -->
+    <div class="col-lg-3 col-xl-2 sidebar p-0" id="sidebar">
+        <div class="p-4 text-center border-bottom border-secondary">
+            <div class="position-relative mb-3">
+                <img src="{{ artisan.image_url }}" alt="{{ artisan.full_name }}" class="profile-img" 
+                     onerror="this.src='https://ui-avatars.com/api/?name={{ artisan.full_name|urlencode }}&background=FF4500&color=fff'">
+                <label for="imageUpload" class="position-absolute bottom-0 end-0 bg-dark text-white rounded-circle p-2 border border-2 border-white" style="cursor: pointer;">
+                    <i class="fas fa-camera"></i>
+                </label>
+                <input type="file" id="imageUpload" accept="image/*" class="d-none" onchange="uploadProfileImage(this)">
+            </div>
+            <h5 class="fw-bold mb-1">{{ artisan.full_name }}</h5>
+            <p class="text-muted mb-2">{{ artisan.trade }}</p>
+            <div class="d-flex justify-content-center gap-2">
+                <span class="badge bg-{% if artisan.status == 'Available' %}success{% else %}warning{% endif %}">
+                    <span class="badge-online bg-{% if artisan.status == 'Available' %}success{% else %}warning{% endif %}"></span>
+                    {{ artisan.status }}
+                </span>
+                <span class="badge bg-warning text-dark">
+                    <i class="fas fa-star"></i> {{ artisan.rating|default('5.0') }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="p-3">
+            <div class="mb-4">
+                <div class="text-muted small mb-2">Earnings This Month</div>
+                <h3 class="fw-bold text-warning">GH₵ {{ monthly_earnings|default('0') }}</h3>
+                <div class="progress" style="height: 5px;">
+                    <div class="progress-bar bg-warning" style="width: {{ (monthly_earnings/5000*100)|default('0')|int }}%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link active" href="#dashboard">
+                    <i class="fas fa-tachometer-alt me-3"></i> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#jobs">
+                    <i class="fas fa-briefcase me-3"></i> Available Jobs
+                    {% if available_jobs_count > 0 %}
+                    <span class="notification-badge">{{ available_jobs_count }}</span>
+                    {% endif %}
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#my-jobs">
+                    <i class="fas fa-tasks me-3"></i> My Jobs
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#earnings">
+                    <i class="fas fa-chart-line me-3"></i> Earnings
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#location">
+                    <i class="fas fa-map-marked-alt me-3"></i> Location & Map
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#profile">
+                    <i class="fas fa-user-cog me-3"></i> Profile Settings
+                </a>
+            </li>
+            <li class="nav-item mt-auto">
+                <a class="nav-link text-danger" href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt me-3"></i> Logout
+                </a>
+            </li>
+        </ul>
+        
+        <div class="p-3 border-top border-secondary mt-auto">
+            <div class="text-center">
+                <small class="text-muted">Commission Rate</small>
+                <h6 class="text-warning fw-bold">15% Platform Fee</h6>
+                <small class="text-muted">You keep 85% of all earnings</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-lg-9 col-xl-10 main-content" id="mainContent">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold text-dark">Artisan Dashboard</h2>
+                <p class="text-muted mb-0">Welcome back! Manage your jobs and earnings</p>
+            </div>
+            <div class="d-flex gap-3">
+                <button class="btn btn-outline-dark" onclick="updateStatus()">
+                    <i class="fas fa-toggle-{% if artisan.status == 'Available' %}on text-success{% else %}off text-warning{% endif %} me-2"></i>
+                    {{ artisan.status }}
+                </button>
+                <button class="btn btn-warning" onclick="showJobRequestModal()">
+                    <i class="fas fa-plus me-2"></i> Request Work
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="stats-card p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Available Jobs</h6>
+                            <h2 class="fw-bold mb-0">{{ available_jobs_count }}</h2>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
+                            <i class="fas fa-briefcase text-warning fa-2x"></i>
+                        </div>
+                    </div>
+                    <small class="text-muted">Near your location</small>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="stats-card p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Active Jobs</h6>
+                            <h2 class="fw-bold mb-0">{{ active_jobs_count }}</h2>
+                        </div>
+                        <div class="bg-info bg-opacity-10 p-3 rounded-circle">
+                            <i class="fas fa-tasks text-info fa-2x"></i>
+                        </div>
+                    </div>
+                    <small class="text-muted">In progress</small>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="stats-card p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Monthly Earnings</h6>
+                            <h2 class="fw-bold mb-0">GH₵ {{ monthly_earnings|default('0') }}</h2>
+                        </div>
+                        <div class="bg-success bg-opacity-10 p-3 rounded-circle">
+                            <i class="fas fa-money-bill-wave text-success fa-2x"></i>
+                        </div>
+                    </div>
+                    <small class="text-muted">After 15% commission</small>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="stats-card p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Rating</h6>
+                            <h2 class="fw-bold mb-0">{{ artisan.rating|default('5.0') }}</h2>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 p-3 rounded-circle">
+                            <i class="fas fa-star text-primary fa-2x"></i>
+                        </div>
+                    </div>
+                    <small class="text-muted">Based on {{ completed_jobs_count|default('0') }} jobs</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div class="row g-4">
+            <!-- Available Jobs Section -->
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm rounded-4 mb-4" id="jobs">
+                    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0">
+                            <i class="fas fa-bell text-warning me-2"></i> Available Jobs Near You
+                        </h5>
+                        <span class="badge bg-warning">{{ available_jobs_count }} New</span>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if available_jobs %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="ps-4">Job Details</th>
+                                        <th>Client</th>
+                                        <th>Location</th>
+                                        <th>Amount</th>
+                                        <th class="text-end pe-4">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for job in available_jobs %}
+                                    <tr class="job-card">
+                                        <td class="ps-4">
+                                            <div class="fw-bold">{{ job.job_title }}</div>
+                                            <small class="text-muted">
+                                                <i class="fas fa-clock me-1"></i> {{ job.created_at|time_ago }}
+                                            </small>
+                                            {% if job.notify_others %}
+                                            <br><span class="badge bg-info mt-1">Urgent Request</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 30px; height: 30px;">
+                                                    <i class="fas fa-user text-muted small"></i>
+                                                </div>
+                                                {{ job.client_name }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <i class="fas fa-map-marker-alt text-danger me-1"></i>
+                                            {{ job.location }}
+                                            <br>
+                                            <small class="text-muted">{{ job.distance }} km away</small>
+                                        </td>
+                                        <td>
+                                            <span class="fw-bold text-dark">GH₵ {{ job.amount }}</span>
+                                            <br>
+                                            <small class="text-success">You get: GH₵ {{ (job.amount * 0.85)|int }}</small>
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <div class="btn-group">
+                                                <button class="btn btn-success btn-sm" onclick="acceptJob({{ job.id }})">
+                                                    <i class="fas fa-check me-1"></i> Accept
+                                                </button>
+                                                <button class="btn btn-outline-danger btn-sm" onclick="declineJob({{ job.id }})" title="Decline">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                                <button class="btn btn-outline-info btn-sm" onclick="viewJobOnMap({{ job.id }}, '{{ job.location }}')" title="View on Map">
+                                                    <i class="fas fa-map"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-search fa-3x text-muted opacity-50 mb-3"></i>
+                            <h5>No new job requests</h5>
+                            <p class="text-muted">Check back later for new opportunities</p>
+                            <button class="btn btn-warning btn-sm" onclick="refreshJobs()">
+                                <i class="fas fa-sync-alt me-1"></i> Refresh
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- My Active Jobs -->
+                <div class="card border-0 shadow-sm rounded-4" id="my-jobs">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="fw-bold mb-0">
+                            <i class="fas fa-tasks text-success me-2"></i> My Active Jobs
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if my_active_jobs %}
+                        <div class="row">
+                            {% for job in my_active_jobs %}
+                            <div class="col-md-6 mb-3">
+                                <div class="border rounded-3 p-3 bg-light">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <h6 class="fw-bold mb-1">{{ job.job_title }}</h6>
+                                            <p class="text-muted small mb-2">
+                                                <i class="fas fa-user me-1"></i> {{ job.client_name }}
+                                            </p>
+                                        </div>
+                                        <span class="badge bg-warning">In Progress</span>
+                                    </div>
+                                    <p class="small text-muted mb-2">
+                                        <i class="fas fa-map-marker-alt me-1"></i> {{ job.location }}
+                                    </p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <small class="text-muted">Amount:</small>
+                                            <h6 class="fw-bold text-dark mb-0">GH₵ {{ job.amount }}</h6>
+                                            <small class="text-success">Net: GH₵ {{ (job.amount * 0.85)|int }}</small>
+                                        </div>
+                                        <button class="btn btn-success btn-sm" onclick="completeJob({{ job.id }})">
+                                            <i class="fas fa-check me-1"></i> Mark Complete
+                                        </button>
+                                    </div>
+                                    <hr class="my-2">
+                                    <div class="d-flex justify-content-between">
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar me-1"></i> Started: {{ job.start_date }}
+                                        </small>
+                                        <button class="btn btn-outline-info btn-sm" onclick="navigateToJob({{ job.id }})">
+                                            <i class="fas fa-directions me-1"></i> Navigate
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-clipboard-list fa-2x text-muted opacity-50 mb-3"></i>
+                            <p class="text-muted">No active jobs at the moment</p>
+                            <button class="btn btn-outline-warning btn-sm" onclick="showJobRequestModal()">
+                                <i class="fas fa-bullhorn me-1"></i> Request Work
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Map & Earnings -->
+            <div class="col-lg-4">
+                <!-- Live Map -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4" id="location">
+                    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0">
+                            <i class="fas fa-map-marked-alt text-primary me-2"></i> Live Location Map
+                        </h5>
+                        <button class="btn btn-outline-primary btn-sm" onclick="refreshLocation()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <div class="card-body p-3">
+                        <div id="map"></div>
+                        <div class="mt-3">
+                            <div class="input-group">
+                                <input type="text" id="addressInput" class="form-control" placeholder="Update your location..." value="{{ artisan.location }}">
+                                <button class="btn btn-warning" onclick="updateLocation()">
+                                    <i class="fas fa-location-arrow"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted mt-2 d-block">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Your location helps clients find you for nearby jobs
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Earnings Chart -->
+                <div class="card border-0 shadow-sm rounded-4" id="earnings">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="fw-bold mb-0">
+                            <i class="fas fa-chart-line text-success me-2"></i> Earnings Overview
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="earning-chart">
+                            <canvas id="earningsChart"></canvas>
+                        </div>
+                        <div class="row text-center mt-3">
+                            <div class="col-6">
+                                <small class="text-muted d-block">This Month</small>
+                                <h5 class="fw-bold text-success">GH₵ {{ monthly_earnings|default('0') }}</h5>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted d-block">Total</small>
+                                <h5 class="fw-bold text-dark">GH₵ {{ total_earnings|default('0') }}</h5>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="d-grid">
+                            <button class="btn btn-outline-success" onclick="showWithdrawalModal()">
+                                <i class="fas fa-wallet me-2"></i> Request Withdrawal
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals -->
+<!-- Job Request Modal -->
+<div class="modal fade" id="jobRequestModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Request Work</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="jobRequestForm">
+                    <div class="mb-3">
+                        <label class="form-label">Service Needed</label>
+                        <input type="text" class="form-control" placeholder="e.g., I need plumbing work" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Location</label>
+                        <input type="text" class="form-control" placeholder="Where do you need work done?" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Estimated Budget (GH₵)</label>
+                        <input type="number" class="form-control" placeholder="500" min="50" max="5000" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Urgency</label>
+                        <select class="form-select">
+                            <option value="normal">Normal (24-48 hours)</option>
+                            <option value="urgent">Urgent (Same day)</option>
+                            <option value="emergency">Emergency (Within hours)</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" onclick="submitJobRequest()">Submit Request</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Upload Modal -->
+<div class="modal fade" id="imageUploadModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Profile Picture</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <img id="imagePreview" src="#" alt="Preview" class="img-fluid rounded mb-3 d-none" style="max-height: 300px;">
+                    <input type="file" id="profileImageInput" accept="image/*" class="form-control" onchange="previewUploadedImage(this)">
+                    <small class="text-muted d-block mt-2">Image will be sent to admin for approval</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" onclick="uploadProfileImage()">Upload & Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Withdrawal Modal -->
+<div class="modal fade" id="withdrawalModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Request Withdrawal</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Available Balance</label>
+                    <h4 class="text-success">GH₵ {{ available_balance|default('0') }}</h4>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Amount to Withdraw (GH₵)</label>
+                    <input type="number" id="withdrawAmount" class="form-control" min="10" max="{{ available_balance|default('0') }}" value="{{ available_balance|default('0') }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Payment Method</label>
+                    <select class="form-select" id="paymentMethod">
+                        <option value="momo">Mobile Money (MTN/AirtelTigo/Vodafone)</option>
+                        <option value="bank">Bank Transfer</option>
+                        <option value="cash">Cash Pickup</option>
+                    </select>
+                </div>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Withdrawals are processed within 24-48 hours. Minimum withdrawal is GH₵ 10.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="submitWithdrawal()">Request Withdrawal</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Job Details Modal -->
+<div class="modal fade" id="jobDetailsModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="jobModalTitle">Job Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="jobModalContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Global variables
+    let map;
+    let userMarker;
+    let jobMarkers = [];
+    let userLocation = [5.6037, -0.1870]; // Default to Accra
+    
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeMap();
+        initializeEarningsChart();
+        loadAvailableJobs();
+        
+        // Check for geolocation
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    userLocation = [position.coords.latitude, position.coords.longitude];
+                    updateUserLocationOnMap();
+                },
+                function(error) {
+                    console.log("Geolocation error:", error);
+                    useDefaultLocation();
+                }
+            );
+        } else {
+            useDefaultLocation();
+        }
+    });
+    
+    // Map Functions
+    function initializeMap() {
+        map = L.map('map').setView(userLocation, 13);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Add geocoder control
+        L.Control.geocoder({
+            defaultMarkGeocode: false
+        })
+        .on('markgeocode', function(e) {
+            var bbox = e.geocode.bbox;
+            map.fitBounds(bbox);
+        })
+        .addTo(map);
+        
+        // Add user marker
+        updateUserLocationOnMap();
+    }
+    
+    function updateUserLocationOnMap() {
+        if (userMarker) {
+            map.removeLayer(userMarker);
+        }
+        
+        userMarker = L.marker(userLocation, {
+            icon: L.divIcon({
+                className: 'user-marker',
+                html: '<div style="background: #FF4500; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>',
+                iconSize: [30, 30]
+            })
+        })
+        .addTo(map)
+        .bindPopup('<strong>Your Location</strong><br>{{ artisan.full_name }}<br>{{ artisan.trade }}')
+        .openPopup();
+        
+        map.setView(userLocation, 13);
+    }
+    
+    function useDefaultLocation() {
+        userLocation = [5.6037, -0.1870]; // Accra coordinates
+        updateUserLocationOnMap();
+    }
+    
+    function refreshLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    userLocation = [position.coords.latitude, position.coords.longitude];
+                    updateUserLocationOnMap();
+                    showNotification('Location updated successfully!', 'success');
+                },
+                function(error) {
+                    showNotification('Unable to get your location. Using default.', 'warning');
+                }
+            );
+        }
+    }
+    
+    function updateLocation() {
+        const address = document.getElementById('addressInput').value;
+        if (address) {
+            // In a real app, you would geocode the address here
+            showNotification('Location updated!', 'success');
+            // Send to server
+            fetch('/artisan/update-location', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ location: address })
+            });
+        }
+    }
+    
+    // Job Functions
+    function loadAvailableJobs() {
+        // This would be populated from server
+        console.log('Loading available jobs...');
+    }
+    
+    function acceptJob(jobId) {
+        if (confirm('Accept this job? You will be responsible for completing it.')) {
+            fetch(`/artisan/accept-job/${jobId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Job accepted! Check "My Jobs" for details.', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showNotification('Error: ' + data.error, 'error');
+                }
+            });
+        }
+    }
+    
+    function declineJob(jobId) {
+        if (confirm('Decline this job? It will be offered to other artisans.')) {
+            fetch(`/artisan/decline-job/${jobId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Job declined.', 'info');
+                    setTimeout(() => location.reload(), 1000);
+                }
+            });
+        }
+    }
+    
+    function completeJob(jobId) {
+        if (confirm('Mark this job as complete? Payment will be processed.')) {
+            fetch(`/artisan/complete-job/${jobId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Job completed! Payment processing.', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                }
+            });
+        }
+    }
+    
+    function viewJobOnMap(jobId, location) {
+        // For demo - in real app, get coordinates from address
+        const jobCoords = [
+            userLocation[0] + (Math.random() * 0.01 - 0.005),
+            userLocation[1] + (Math.random() * 0.01 - 0.005)
+        ];
+        
+        // Clear existing job markers
+        jobMarkers.forEach(marker => map.removeLayer(marker));
+        jobMarkers = [];
+        
+        // Add job marker
+        const jobMarker = L.marker(jobCoords, {
+            icon: L.divIcon({
+                className: 'job-marker',
+                html: '<div style="background: #198754; width: 25px; height: 25px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"></div>',
+                iconSize: [25, 25]
+            })
+        })
+        .addTo(map)
+        .bindPopup(`<strong>Job Location</strong><br>${location}`)
+        .openPopup();
+        
+        jobMarkers.push(jobMarker);
+        
+        // Draw route
+        L.polyline([userLocation, jobCoords], {
+            color: 'orange',
+            weight: 3,
+            opacity: 0.7
+        }).addTo(map);
+        
+        // Fit bounds to show both markers
+        const bounds = L.latLngBounds([userLocation, jobCoords]);
+        map.fitBounds(bounds.pad(0.1));
+    }
+    
+    function navigateToJob(jobId) {
+        // Open in Google Maps
+        window.open(`https://www.google.com/maps/dir/?api=1&destination=${userLocation[0]},${userLocation[1]}`, '_blank');
+    }
+    
+    function refreshJobs() {
+        location.reload();
+    }
+    
+    // Image Upload Functions
+    function uploadProfileImage(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            fetch('/artisan/upload-profile-image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Profile image uploaded! Awaiting admin approval.', 'success');
+                    // Update image preview
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.querySelector('.profile-img').src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    showNotification('Upload failed: ' + data.error, 'error');
+                }
+            });
+        }
+    }
+    
+    // Earnings Chart
+    function initializeEarningsChart() {
+        const ctx = document.getElementById('earningsChart').getContext('2d');
+        const earningsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                datasets: [{
+                    label: 'Monthly Earnings (GH₵)',
+                    data: [1200, 1900, 1500, 2500, 2200, 3000, 2800],
+                    borderColor: '#FF4500',
+                    backgroundColor: 'rgba(255, 69, 0, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return 'GH₵ ' + value;
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Modal Functions
+    function showJobRequestModal() {
+        new bootstrap.Modal(document.getElementById('jobRequestModal')).show();
+    }
+    
+    function submitJobRequest() {
+        const form = document.getElementById('jobRequestForm');
+        if (form.checkValidity()) {
+            showNotification('Job request submitted! Clients will be notified.', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('jobRequestModal')).hide();
+        } else {
+            form.reportValidity();
+        }
+    }
+    
+    function showWithdrawalModal() {
+        new bootstrap.Modal(document.getElementById('withdrawalModal')).show();
+    }
+    
+    function submitWithdrawal() {
+        const amount = document.getElementById('withdrawAmount').value;
+        const method = document.getElementById('paymentMethod').value;
+        
+        fetch('/artisan/request-withdrawal', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ amount: amount, method: method })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Withdrawal request submitted!', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('withdrawalModal')).hide();
+            }
+        });
+    }
+    
+    // Status Functions
+    function updateStatus() {
+        const newStatus = '{{ artisan.status }}' === 'Available' ? 'Busy' : 'Available';
+        
+        fetch('/artisan/update-status', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ status: newStatus })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(`Status updated to ${newStatus}`, 'success');
+                setTimeout(() => location.reload(), 1000);
+            }
+        });
+    }
+    
+    // Utility Functions
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('show');
+    }
+    
+    function showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+    
+    // Auto-refresh jobs every 30 seconds
+    setInterval(() => {
+        fetch('/artisan/check-new-jobs')
+            .then(response => response.json())
+            .then(data => {
+                if (data.new_jobs > 0) {
+                    showNotification(`You have ${data.new_jobs} new job${data.new_jobs > 1 ? 's' : ''} available!`, 'info');
+                }
+            });
+    }, 30000);
+</script>
+</body>
+</html>

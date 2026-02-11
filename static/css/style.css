@@ -1,0 +1,235 @@
+/* BRAND COLORS */
+:root {
+    --brand-black: #0a0a0a;
+    --brand-orange: #FF4500;  /* Safety Orange */
+    --brand-grey: #f4f6f8;    /* Light background */
+    --text-dark: #2c3e50;
+    --text-muted: #6c757d;
+}
+
+body {
+    background-color: #ffffff;
+    color: var(--text-dark);
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    overflow-x: hidden; /* Prevent horizontal scroll on mobile */
+}
+
+/* NAVBAR */
+.navbar {
+    background-color: #ffffff !important;
+    border-bottom: 3px solid var(--brand-orange);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.navbar-brand {
+    color: var(--brand-black) !important;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+.nav-link {
+    color: var(--brand-black) !important;
+    font-weight: 500;
+}
+
+.nav-link:hover {
+    color: var(--brand-orange) !important;
+}
+
+/* HERO SECTION */
+.hero-section {
+    background-color: var(--brand-grey);
+    padding: 60px 0;
+    border-bottom-right-radius: 50px; /* Modern curve */
+}
+
+/* CARDS */
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    transition: transform 0.3s ease;
+    background: #fff;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.card-img-top {
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    height: 220px;
+    object-fit: cover;
+}
+
+/* BUTTONS */
+.btn-warning {
+    background-color: var(--brand-orange);
+    border: none;
+    color: white;
+    font-weight: 600;
+    padding: 10px 25px;
+    border-radius: 8px;
+}
+
+.btn-warning:hover {
+    background-color: #FF4500;
+    color: white;
+}
+
+.btn-outline-dark {
+    border: 2px solid var(--brand-black);
+    color: var(--brand-black);
+    font-weight: 600;
+}
+
+.btn-outline-dark:hover {
+    background-color: var(--brand-black);
+    color: white;
+}
+
+/* AD BANNER */
+.ad-banner {
+    background-color: var(--brand-grey);
+    border: 1px dashed #ccc;
+    display: block;
+    width: 100%;
+    margin-bottom: 30px;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+/* MOBILE RESPONSIVENESS */
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 40px 15px;
+        text-align: center;
+    }
+    
+    .display-4 {
+        font-size: 2.5rem; /* Smaller heading on mobile */
+    }
+    
+    .navbar-brand {
+        font-size: 1.2rem;
+    }
+    
+    .input-group {
+        flex-direction: column; /* Stack search inputs */
+    }
+    
+    .input-group > * {
+        width: 100% !important;
+        border-radius: 5px !important;
+        margin-bottom: 10px;
+    }
+    
+    .card-img-top {
+        height: 180px; /* Smaller images on mobile */
+    }
+}
+
+
+/* CATEGORY TILES HOVER EFFECT */
+.category-tile {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.category-tile:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(255, 69, 0, 0.15) !important;
+    border-color: var(--brand-orange) !important;
+}
+
+.category-tile i {
+    transition: color 0.3s;
+}
+
+.category-tile:hover i {
+    color: var(--brand-orange) !important;
+}
+
+
+
+
+/* BRAND COLORS */
+:root {
+    --brand-black: #0a0a0a;
+    --brand-orange: #FF4500;  /* Safety Orange */
+    --brand-grey: #f4f6f8;    /* Light background */
+    --text-dark: #2c3e50;
+    --text-muted: #6c757d;
+}
+
+/* Map markers */
+.user-marker {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* Job cards hover effect */
+.job-card {
+    transition: all 0.3s ease;
+}
+
+.job-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* Sidebar animation */
+.sidebar {
+    transition: transform 0.3s ease;
+}
+
+/* Status badges */
+.badge-online {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+/* Loading animation */
+.loading {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Notification badges */
+.notification-badge {
+    animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .stats-card {
+        margin-bottom: 15px;
+    }
+    
+    #map {
+        height: 300px;
+    }
+    
+    .earning-chart {
+        height: 250px;
+    }
+}

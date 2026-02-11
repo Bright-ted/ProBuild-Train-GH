@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Status | ProBuild</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; }
+        .status-card { 
+            border-radius: 20px; 
+            border-top: 5px solid var(--brand-orange, #FF4500);
+        }
+        .step { 
+            display: flex; 
+            align-items: center; 
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+        .step.active { background: #fff3cd; border-left: 4px solid #ffc107; }
+        .step.completed { background: #d1e7dd; border-left: 4px solid #198754; }
+        .step-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+        }
+    </style>
+</head>
+<body class="d-flex align-items-center justify-content-center vh-100">
+    
+    <div class="card shadow p-5 status-card" style="max-width: 600px; width: 100%;">
+        
+        <div class="text-center mb-4">
+            <div class="mb-3">
+                <span class="fa-stack fa-2x">
+                    <i class="fas fa-circle fa-stack-2x text-warning"></i>
+                    <i class="fas fa-user-hard-hat fa-stack-1x text-white"></i>
+                </span>
+            </div>
+            <h2 class="fw-bold">Application Status</h2>
+            <p class="text-muted">Track your verification progress</p>
+        </div>
+
+        <!-- Progress Steps -->
+        <div class="mb-4">
+            <div class="step {% if stage == 'docs' %}active{% elif stage == 'payment' or stage == 'complete' %}completed{% endif %}">
+                <div class="step-icon bg-{% if stage == 'docs' %}warning{% else %}success{% endif %} text-white">
+                    <i class="fas fa-{% if stage == 'docs' %}clock{% else %}check{% endif %}"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-0">Document Verification</h6>
+                    <small class="text-muted">Admin reviewing your Ghana Card & documents</small>
+                </div>
+            </div>
+
+            <div class="step {% if stage == 'payment' %}active{% elif stage == 'complete' %}completed{% endif %}">
+                <div class="step-icon {% if stage == 'payment' %}bg-warning{% elif stage == 'complete' %}bg-success{% else %}bg-secondary{% endif %} text-white">
+                    <i class="fas fa-{% if stage == 'payment' %}clock{% elif stage == 'complete' %}check{% else %}lock{% endif %}"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-0">Subscription Payment</h6>
+                    <small class="text-muted">Pay GH₵ 50 monthly fee to go live</small>
+                </div>
+            </div>
+
+            <div class="step {% if stage == 'complete' %}active{% else %}{% endif %}">
+                <div class="step-icon {% if stage == 'complete' %}bg-success{% else %}bg-secondary{% endif %} text-white">
+                    <i class="fas fa-{% if stage == 'complete' %}check{% else %}flag{% endif %}"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-0">Go Live!</h6>
+                    <small class="text-muted">Start accepting jobs on the platform</small>
+                </div>
+            </div>
+        </div>
+
+        {% if stage == 'docs' %}
+            <div class="alert alert-warning">
+                <h5><i class="fas fa-clipboard-check me-2"></i> Under Review</h5>
+                <p class="mb-2">Your documents are being verified by our admin team.</p>
+                <small class="text-muted">This usually takes 1-24 hours. You'll receive a notification when approved.</small>
+            </div>
+            <div class="text-center">
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-dark me-2">Logout</a>
+                <button onclick="location.reload()" class="btn btn-warning">Check Status</button>
+            </div>
+        
+        {% elif stage == 'payment' %}
+            <div class="alert alert-info">
+                <h5><i class="fas fa-check-circle me-2"></i> Documents Approved!</h5>
+                <p class="mb-2">Your Ghana Card and documents have been verified successfully.</p>
+            </div>
+            
+            <div class="card border-primary mb-3">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-credit-card me-2"></i> Subscription Required
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">GH₵ 50.00 / month</h5>
+                    <p class="card-text">To activate your account and start receiving job requests, please pay the monthly subscription fee.</p>
+                    
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-warning btn-lg" onclick="showPaymentOptions()">
+                            <i class="fas fa-wallet me-2"></i> Pay Now
+                        </button>
+                        <small class="text-muted text-center">Or contact admin for offline payment: 055-123-4567</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center">
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-dark">Logout</a>
+            </div>
+
+        {% elif stage == 'complete' %}
+            <div class="alert alert-success">
+                <h5><i class="fas fa-party-horn me-2"></i> Account Activated!</h5>
+                <p class="mb-2">Congratulations! Your account is now fully active.</p>
+                <small>You can now access the artisan portal and start receiving job requests.</small>
+            </div>
+            
+            <div class="d-grid">
+                <a href="{{ url_for('artisan_portal') }}" class="btn btn-success btn-lg">
+                    <i class="fas fa-door-open me-2"></i> Enter Artisan Portal
+                </a>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-dark mt-2">Go to Homepage</a>
+            </div>
+        {% endif %}
+
+        <!-- Payment Options Modal (Hidden by default) -->
+        <div id="paymentModal" class="modal fade">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Payment Options</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="border rounded p-3 text-center hover-shadow" onclick="processPayment('momo')">
+                                    <i class="fas fa-mobile-alt fa-2x text-primary mb-2"></i>
+                                    <h6>Mobile Money</h6>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="border rounded p-3 text-center hover-shadow" onclick="processPayment('card')">
+                                    <i class="fas fa-credit-card fa-2x text-success mb-2"></i>
+                                    <h6>Bank Card</h6>
+                                </div>
+                            </div>
+                            <div class="col-12 mt-3">
+                                <div class="border rounded p-3 text-center hover-shadow" onclick="processPayment('cash')">
+                                    <i class="fas fa-money-bill-wave fa-2x text-warning mb-2"></i>
+                                    <h6>Cash to Admin</h6>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    function showPaymentOptions() {
+        new bootstrap.Modal(document.getElementById('paymentModal')).show();
+    }
+
+    function processPayment(method) {
+        if (method === 'cash') {
+            alert('Please visit our office or call 055-123-4567 to make cash payment.');
+            return;
+        }
+        
+        // For demo, simulate payment success
+        fetch('/artisan/confirm-payment', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Payment successful! Your account will be activated shortly.');
+                window.location.href = '/pending/complete';
+            } else {
+                alert('Payment failed: ' + data.error);
+            }
+        });
+    }
+
+    // Auto-check status every 30 seconds
+    function checkArtisanStatus() {
+        fetch('/artisan/check-status')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.error) {
+                    console.log('Current status:', data);
+                    // Check if we need to redirect based on status
+                    const currentPath = window.location.pathname;
+                    
+                    if (!data.is_verified && !currentPath.includes('/pending/docs')) {
+                        // Not verified, should be on docs page
+                        window.location.href = '/pending/docs';
+                    } else if (data.is_verified && !data.subscription_active && !currentPath.includes('/pending/payment')) {
+                        // Verified but not subscribed, should be on payment page
+                        window.location.href = '/pending/payment';
+                    } else if (data.is_verified && data.subscription_active && !currentPath.includes('/pending/complete')) {
+                        // Fully activated, should be on complete page
+                        window.location.href = '/pending/complete';
+                    }
+                }
+            })
+            .catch(error => console.error('Error checking status:', error));
+    }
+
+    // Check status every 30 seconds (only for docs stage)
+    {% if stage == 'docs' %}
+    setInterval(checkArtisanStatus, 30000); // 30 seconds
+    
+    // Also check when page loads
+    document.addEventListener('DOMContentLoaded', checkArtisanStatus);
+    {% endif %}
+
+    // Auto-refresh for docs stage
+    {% if stage == 'docs' %}
+    setTimeout(() => {
+        location.reload();
+    }, 30000); // 30 seconds
+    {% endif %}
+</script>
+</body>
+</html>

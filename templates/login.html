@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="col-md-5 col-lg-4">
+        
+        <div class="text-center mb-4">
+            <div class="mb-3">
+                <span class="fa-stack fa-2x">
+                    <i class="fas fa-circle fa-stack-2x text-warning"></i>
+                    <i class="fas fa-user fa-stack-1x text-white"></i>
+                </span>
+            </div>
+            <h2 class="fw-bold text-dark">Welcome Back</h2>
+            <p class="text-muted">Login to manage your account</p>
+        </div>
+
+        <!-- Login Tabs -->
+        <ul class="nav nav-tabs nav-justified mb-4" id="loginTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="client-tab" data-bs-toggle="tab" data-bs-target="#client" type="button">
+                    <i class="fas fa-user me-1"></i> Client
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="artisan-tab" data-bs-toggle="tab" data-bs-target="#artisan" type="button">
+                    <i class="fas fa-hard-hat me-1"></i> Artisan
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- Client Login -->
+            <div class="tab-pane fade show active" id="client" role="tabpanel">
+                <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+                    <div class="card-body p-4 bg-white">
+                        <form action="{{ url_for('login') }}" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small text-uppercase text-muted">Email Address</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0"><i class="fas fa-envelope text-muted"></i></span>
+                                    <input type="email" name="email" class="form-control bg-light border-start-0" placeholder="name@example.com" required>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between">
+                                    <label class="form-label fw-bold small text-uppercase text-muted">Password</label>
+                                    <a href="#" class="small text-warning text-decoration-none">Forgot Password?</a>
+                                </div>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0"><i class="fas fa-lock text-muted"></i></span>
+                                    <input type="password" name="password" class="form-control bg-light border-start-0" placeholder="••••••••" required>
+                                </div>
+                            </div>
+
+                            <div class="d-grid mb-3">
+                                <button type="submit" class="btn btn-dark btn-lg fw-bold shadow-sm">
+                                    Login <i class="fas fa-sign-in-alt ms-2"></i>
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="text-center mt-3">
+                            <small class="text-muted">New to ProBuild?</small> 
+                            <a href="{{ url_for('register') }}" class="text-warning fw-bold text-decoration-none">Create Account</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Artisan Login -->
+            <div class="tab-pane fade" id="artisan" role="tabpanel">
+                <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+                    <div class="card-body p-4 bg-white">
+                        <div class="text-center mb-4">
+                            <i class="fas fa-hard-hat fa-2x text-warning mb-3"></i>
+                            <h5 class="fw-bold">Artisan Login</h5>
+                            <p class="text-muted small">Use your phone number to login</p>
+                        </div>
+                        
+                        <div class="d-grid gap-3">
+                            <a href="{{ url_for('artisan_login_page') }}" class="btn btn-warning btn-lg fw-bold">
+                                <i class="fas fa-sign-in-alt me-2"></i> Go to Artisan Login
+                            </a>
+                            <a href="{{ url_for('join_pro') }}" class="btn btn-outline-dark">
+                                <i class="fas fa-user-plus me-2"></i> Register as Artisan
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .nav-tabs .nav-link {
+        color: #6c757d;
+        font-weight: 500;
+    }
+    .nav-tabs .nav-link.active {
+        color: #FF4500;
+        border-bottom: 2px solid #FF4500;
+    }
+</style>
+{% endblock %}

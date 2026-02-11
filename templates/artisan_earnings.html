@@ -1,0 +1,389 @@
+{% extends "artisan_base.html" %}
+
+{% block title %}Earnings - Artisan Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+    .earning-card {
+        background: white;
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    .chart-container {
+        height: 300px;
+        position: relative;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="fw-bold">Earnings & Payments</h2>
+        <p class="text-muted">Track your income and request withdrawals</p>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-success" onclick="requestWithdrawal()">
+            <i class="fas fa-wallet me-2"></i> Request Withdrawal
+        </button>
+    </div>
+</div>
+
+<!-- Earnings Summary -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="earning-card p-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-2">Total Earned</h6>
+                    <h2 class="fw-bold mb-0">GH₵ {{ total_earned|default('0') }}</h2>
+                </div>
+                <div class="bg-success bg-opacity-10 p-3 rounded-circle">
+                    <i class="fas fa-money-bill-wave text-success fa-lg"></i>
+                </div>
+            </div>
+            <small class="text-muted">Lifetime earnings</small>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="earning-card p-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-2">This Month</h6>
+                    <h2 class="fw-bold mb-0">GH₵ {{ monthly_earnings|default('0') }}</h2>
+                </div>
+                <div class="bg-primary bg-opacity-10 p-3 rounded-circle">
+                    <i class="fas fa-calendar-alt text-primary fa-lg"></i>
+                </div>
+            </div>
+            <small class="text-muted">After commission</small>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="earning-card p-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-2">Available</h6>
+                    <h2 class="fw-bold mb-0">GH₵ {{ available_balance|default('0') }}</h2>
+                </div>
+                <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
+                    <i class="fas fa-university text-warning fa-lg"></i>
+                </div>
+            </div>
+            <small class="text-muted">Ready to withdraw</small>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="earning-card p-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-2">Commission</h6>
+                    <h2 class="fw-bold mb-0">15%</h2>
+                </div>
+                <div class="bg-info bg-opacity-10 p-3 rounded-circle">
+                    <i class="fas fa-percentage text-info fa-lg"></i>
+                </div>
+            </div>
+            <small class="text-muted">Platform fee</small>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Earnings Chart -->
+    <div class="col-md-8 mb-4">
+        <div class="earning-card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0">Earnings Overview</h5>
+                <select class="form-select w-auto" onchange="updateChart(this.value)">
+                    <option value="monthly">Last 6 Months</option>
+                    <option value="yearly">Last 3 Years</option>
+                    <option value="weekly">Last 12 Weeks</option>
+                </select>
+            </div>
+            <div class="chart-container">
+                <canvas id="earningsChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Transactions -->
+    <div class="col-md-4 mb-4">
+        <div class="earning-card p-4 h-100">
+            <h5 class="fw-bold mb-4">Recent Transactions</h5>
+            {% if recent_transactions %}
+            <div class="list-group list-group-flush">
+                {% for transaction in recent_transactions %}
+                <div class="list-group-item border-0 px-0 py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="fw-bold mb-1">{{ transaction.description }}</h6>
+                            <small class="text-muted">{{ transaction.date }}</small>
+                        </div>
+                        <div class="text-end">
+                            <h6 class="fw-bold mb-0 text-{% if transaction.type == 'credit' %}success{% else %}danger{% endif %}">
+                                {{ transaction.amount }}
+                            </h6>
+                            <small class="text-muted">{{ transaction.status }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-exchange-alt fa-2x text-muted opacity-50 mb-3"></i>
+                <p class="text-muted">No recent transactions</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Transaction History -->
+<div class="earning-card p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="fw-bold mb-0">Transaction History</h5>
+        <button class="btn btn-outline-dark btn-sm" onclick="exportTransactions()">
+            <i class="fas fa-download me-2"></i> Export
+        </button>
+    </div>
+    
+    {% if transactions %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Job</th>
+                    <th>Description</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in transactions %}
+                <tr>
+                    <td>{{ transaction.date }}</td>
+                    <td>{{ transaction.job_title|default('N/A') }}</td>
+                    <td>{{ transaction.description }}</td>
+                    <td>
+                        <strong class="text-{% if transaction.type == 'credit' %}success{% else %}danger{% endif %}">
+                            {{ transaction.amount }}
+                        </strong>
+                    </td>
+                    <td>
+                        <span class="badge bg-{% if transaction.status == 'Completed' %}success{% elif transaction.status == 'Processing' %}warning{% else %}secondary{% endif %}">
+                            {{ transaction.status }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge bg-{% if transaction.type == 'credit' %}success{% else %}danger{% endif %}">
+                            {{ transaction.type|title }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-file-invoice-dollar fa-3x text-muted opacity-50 mb-3"></i>
+        <h5>No Transaction History</h5>
+        <p class="text-muted">Complete jobs to see your earnings here.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Withdrawal Modal -->
+<div class="modal fade" id="withdrawalModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Request Withdrawal</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Available Balance</label>
+                    <h4 class="text-success">GH₵ {{ available_balance|default('0') }}</h4>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Amount to Withdraw (GH₵)</label>
+                    <input type="number" id="withdrawAmount" class="form-control" min="10" max="{{ available_balance|default('0') }}" value="{{ available_balance|default('0') }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Payment Method</label>
+                    <select class="form-select" id="paymentMethod">
+                        <option value="momo">Mobile Money</option>
+                        <option value="bank">Bank Transfer</option>
+                        <option value="cash">Cash Pickup</option>
+                    </select>
+                </div>
+                <div id="methodDetails" class="mt-3">
+                    <!-- Payment method details will be shown here -->
+                </div>
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Withdrawals are processed within 24-48 hours. Minimum withdrawal is GH₵ 10.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="submitWithdrawal()">Request Withdrawal</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let earningsChart;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        initEarningsChart();
+        
+        // Show payment method details
+        document.getElementById('paymentMethod').addEventListener('change', function() {
+            showPaymentMethodDetails(this.value);
+        });
+    });
+    
+    function initEarningsChart() {
+        const ctx = document.getElementById('earningsChart').getContext('2d');
+        earningsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Earnings (GH₵)',
+                    data: [1200, 1900, 1500, 2500, 2200, 3000],
+                    borderColor: '#FF4500',
+                    backgroundColor: 'rgba(255, 69, 0, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return 'GH₵ ' + value;
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function updateChart(timeframe) {
+        // In a real app, this would fetch new data from the server
+        alert('Updating chart for ' + timeframe + ' view...');
+    }
+    
+    function requestWithdrawal() {
+        showPaymentMethodDetails('momo');
+        new bootstrap.Modal(document.getElementById('withdrawalModal')).show();
+    }
+    
+    function showPaymentMethodDetails(method) {
+        const detailsDiv = document.getElementById('methodDetails');
+        let html = '';
+        
+        switch(method) {
+            case 'momo':
+                html = `
+                    <div class="alert alert-warning">
+                        <h6>Mobile Money Details</h6>
+                        <p class="mb-2">Please ensure your phone number is correct:</p>
+                        <p class="fw-bold mb-0">{{ artisan.phone|default('Not set') }}</p>
+                        <small class="text-muted">If this is incorrect, update your profile first.</small>
+                    </div>
+                `;
+                break;
+            case 'bank':
+                html = `
+                    <div class="alert alert-info">
+                        <h6>Bank Transfer Details</h6>
+                        <p class="mb-2">Please provide your bank details:</p>
+                        <input type="text" class="form-control mb-2" placeholder="Bank Name" required>
+                        <input type="text" class="form-control mb-2" placeholder="Account Name" required>
+                        <input type="text" class="form-control" placeholder="Account Number" required>
+                    </div>
+                `;
+                break;
+            case 'cash':
+                html = `
+                    <div class="alert alert-success">
+                        <h6>Cash Pickup</h6>
+                        <p class="mb-2">Visit our office to collect cash:</p>
+                        <p class="mb-0"><strong>Address:</strong> 123 Main Street, Accra</p>
+                        <p class="mb-0"><strong>Hours:</strong> Mon-Fri, 9AM-5PM</p>
+                        <p class="mb-0"><strong>Bring:</strong> Your ID Card</p>
+                    </div>
+                `;
+                break;
+        }
+        
+        detailsDiv.innerHTML = html;
+    }
+    
+    function submitWithdrawal() {
+        const amount = document.getElementById('withdrawAmount').value;
+        const method = document.getElementById('paymentMethod').value;
+        
+        if (!amount || amount < 10) {
+            alert('Minimum withdrawal is GH₵ 10');
+            return;
+        }
+        
+        fetch('{{ url_for("request_withdrawal") }}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ amount: amount, method: method })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Withdrawal request submitted! You will be notified when processed.');
+                bootstrap.Modal.getInstance(document.getElementById('withdrawalModal')).hide();
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+    
+    function exportTransactions() {
+        alert('Exporting transactions to CSV...');
+        // In a real app, this would trigger a CSV download
+    }
+</script>
+{% endblock %}
+{% endblock %}

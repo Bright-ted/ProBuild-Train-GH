@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<section class="position-relative overflow-hidden p-3 p-md-5 m-md-3 bg-light" style="border-radius: 25px;">
+    <div class="container position-relative">
+        <div class="row align-items-center">
+            
+            <div class="col-lg-6 text-center text-lg-start mb-5 mb-lg-0">
+                <div class="badge bg-warning text-dark mb-3 px-3 py-2 rounded-pill fw-bold">
+                    <i class="fas fa-check-circle"></i> Verified & Safe
+                </div>
+                <h1 class="display-5 fw-bold text-dark lh-1 mb-3">
+                    Hire Trusted <br>
+                    <span style="color: var(--brand-orange);" id="typing-text"></span><span class="cursor-blink">|</span>
+                </h1>
+                <p class="lead text-muted mb-4" style="font-size: 1.1rem;">
+                    Don't gamble with roadside artisans. Get GPS-tracked professionals with verified history.
+                </p>
+                
+                <div class="d-flex gap-3 justify-content-center justify-content-lg-start text-muted small">
+                    <span><i class="fas fa-shield-alt text-success"></i> Escrow Payment</span>
+                    <span><i class="fas fa-id-card text-success"></i> Ghana Card Checked</span>
+                </div>
+            </div>
+
+            <div class="col-lg-5 offset-lg-1">
+                <div class="card border-0 shadow-lg p-4" style="border-radius: 20px; background: white;">
+                    <h5 class="fw-bold mb-3">Who do you need?</h5>
+                    <form action="{{ url_for('index') }}" method="GET">
+                        <div class="mb-3">
+                            <div class="input-group input-group-lg border rounded-3 overflow-hidden">
+                                <span class="input-group-text bg-white border-0"><i class="fas fa-search text-warning"></i></span>
+                                <input type="text" name="q" class="form-control border-0 shadow-none" placeholder="e.g. Tiler, Glazier..." value="{{ search_query }}">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="input-group input-group-lg border rounded-3 overflow-hidden">
+                                <span class="input-group-text bg-white border-0"><i class="fas fa-map-marker-alt text-danger"></i></span>
+                                <input type="text" name="loc" class="form-control border-0 shadow-none" placeholder="Location" value="{{ location_query }}">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100 btn-lg fw-bold rounded-3">Find Pro</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="overflow-hidden bg-white py-3 border-bottom border-top">
+    <div class="marquee-container">
+        <div class="marquee-content text-muted fw-bold text-uppercase small">
+            <span class="mx-4"><i class="fas fa-hammer text-warning"></i> Carpenters</span>
+            <span class="mx-4"><i class="fas fa-bolt text-warning"></i> Electricians</span>
+            <span class="mx-4"><i class="fas fa-trowel text-warning"></i> Masons</span>
+            <span class="mx-4"><i class="fas fa-faucet text-warning"></i> Plumbers</span>
+            <span class="mx-4"><i class="fas fa-burn text-warning"></i> Welders</span>
+            <span class="mx-4"><i class="fas fa-paint-roller text-warning"></i> Painters</span>
+            <span class="mx-4"><i class="fas fa-snowflake text-warning"></i> AC Technicians</span>
+            <span class="mx-4"><i class="fas fa-border-all text-warning"></i> Tilers</span>
+            <span class="mx-4"><i class="fas fa-ruler-combined text-warning"></i> Architects</span>
+            <span class="mx-4"><i class="fas fa-hard-hat text-warning"></i> Steel Benders</span>
+            <span class="mx-4"><i class="fas fa-hammer text-warning"></i> Carpenters</span>
+            <span class="mx-4"><i class="fas fa-bolt text-warning"></i> Electricians</span>
+            <span class="mx-4"><i class="fas fa-trowel text-warning"></i> Masons</span>
+            <span class="mx-4"><i class="fas fa-faucet text-warning"></i> Plumbers</span>
+        </div>
+    </div>
+</div>
+
+<div class="container my-5">
+
+    {% if ad_banner %}
+    <div class="ad-banner rounded-3 overflow-hidden shadow-sm mb-5">
+        <a href="{{ ad_banner.link }}">
+            <img src="{{ ad_banner.image }}" alt="Ad" class="w-100" style="object-fit: cover; max-height: 120px;">
+        </a>
+    </div>
+    {% endif %}
+
+    <div class="d-flex justify-content-between align-items-end mb-4 border-bottom pb-2">
+        <div>
+            <h3 class="fw-bold mb-0 text-dark">Available Artisans</h3>
+            <p class="text-muted small mb-0">Book instantly with Escrow protection</p>
+        </div>
+        <button class="btn btn-outline-dark btn-sm rounded-pill"><i class="fas fa-filter"></i> Filter</button>
+    </div>
+
+    {% if artisans %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+        {% for artisan in artisans %}
+        <div class="col">
+            <div class="card h-100 border-0 shadow-sm artisan-card" style="border-radius: 15px; overflow: hidden;">
+                <div class="position-relative">
+                    <img src="{{ artisan.image_url }}" class="w-100" style="height: 220px; object-fit: cover;" 
+                         onerror="this.src='https://via.placeholder.com/300x300?text=ProBuild+User'">
+                    
+                    <div class="position-absolute bottom-0 start-0 w-100 p-3" style="background: linear-gradient(transparent, rgba(0,0,0,0.8));">
+                        <h5 class="text-white fw-bold mb-0">{{ artisan.full_name }}</h5>
+                        <small class="text-warning"><i class="fas fa-star"></i> {{ artisan.rating }} / 5.0</small>
+                    </div>
+                    
+                    <span class="position-absolute top-0 end-0 badge m-2 {{ 'bg-success' if artisan.status == 'Available' else 'bg-secondary' }}">
+                        {{ artisan.status }}
+                    </span>
+                </div>
+
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="badge bg-light text-dark border">{{ artisan.trade }}</span>
+                        <small class="text-muted"><i class="fas fa-map-marker-alt"></i> {{ artisan.location }}</small>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div>
+                            <small class="text-muted d-block" style="font-size: 0.7rem;">STARTING FROM</small>
+                            <span class="fw-bold text-dark">GH₵ {{ artisan.price_range }}</span>
+                        </div>
+<a href="{{ url_for('book_artisan', artisan_id=artisan.id) }}" class="btn btn-warning btn-sm rounded-pill px-3 fw-bold">Book</a>                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <div class="bg-light rounded-circle d-inline-flex p-4 mb-3">
+            <i class="fas fa-search fa-2x text-muted"></i>
+        </div>
+        <h5>No matches found</h5>
+        <p class="text-muted">Try a different search term.</p>
+        <a href="{{ url_for('index') }}" class="btn btn-outline-dark btn-sm">Clear Filters</a>
+    </div>
+    {% endif %}
+
+</div>
+
+<style>
+    /* Blink cursor for typing effect */
+    .cursor-blink {
+        animation: blink 1s infinite;
+        font-weight: 300;
+        color: #ccc;
+    }
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
+    }
+
+    /* Infinite Marquee */
+    .marquee-container {
+        white-space: nowrap;
+        overflow: hidden;
+    }
+    .marquee-content {
+        display: inline-block;
+        animation: scroll 30s linear infinite;
+    }
+    @keyframes scroll {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+    }
+</style>
+
+<script>
+    const textElement = document.getElementById('typing-text');
+    const words = ["Masons.", "Electricians.", "Plumbers.", "Welders.", "Carpenters.", "Tilers.", "Steel Benders."];
+    let wordIndex = 0;
+    let charIndex = 0;
+    let isDeleting = false;
+
+    function typeEffect() {
+        const currentWord = words[wordIndex];
+        
+        if (isDeleting) {
+            textElement.textContent = currentWord.substring(0, charIndex--);
+        } else {
+            textElement.textContent = currentWord.substring(0, charIndex++);
+        }
+
+        let typeSpeed = isDeleting ? 50 : 100;
+
+        if (!isDeleting && charIndex === currentWord.length) {
+            isDeleting = true;
+            typeSpeed = 2000; // Wait before deleting
+        } else if (isDeleting && charIndex === 0) {
+            isDeleting = false;
+            wordIndex = (wordIndex + 1) % words.length;
+            typeSpeed = 500;
+        }
+
+        setTimeout(typeEffect, typeSpeed);
+    }
+
+    document.addEventListener('DOMContentLoaded', typeEffect);
+</script>
+
+{% endblock %}
