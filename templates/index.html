@@ -2,23 +2,29 @@
 
 {% block content %}
 
-<section class="position-relative overflow-hidden p-3 p-md-5 m-md-3 bg-light" style="border-radius: 25px;">
+<section class="position-relative overflow-hidden p-3 p-md-4 m-md-3" 
+         style="border-radius: 25px; 
+                background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)), 
+                url('https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
+                background-size: cover;
+                background-position: center;
+                min-height: 500px;">
     <div class="container position-relative">
         <div class="row align-items-center">
             
-            <div class="col-lg-6 text-center text-lg-start mb-5 mb-lg-0">
+            <div class="col-lg-6 text-center text-lg-start mb-4 mb-lg-0">
                 <div class="badge bg-warning text-dark mb-3 px-3 py-2 rounded-pill fw-bold">
                     <i class="fas fa-check-circle"></i> Verified & Safe
                 </div>
-                <h1 class="display-5 fw-bold text-dark lh-1 mb-3">
+                <h1 class="display-5 fw-bold text-white lh-1 mb-3">
                     Hire Trusted <br>
-                    <span style="color: var(--brand-orange);" id="typing-text"></span><span class="cursor-blink">|</span>
+                    <span style="color: var(--brand-orange);" id="typing-text"></span><span class="cursor-blink text-white">|</span>
                 </h1>
-                <p class="lead text-muted mb-4" style="font-size: 1.1rem;">
+                <p class="lead text-white-50 mb-4" style="font-size: 1.1rem;">
                     Don't gamble with roadside artisans. Get GPS-tracked professionals with verified history.
                 </p>
                 
-                <div class="d-flex gap-3 justify-content-center justify-content-lg-start text-muted small">
+                <div class="d-flex gap-3 justify-content-center justify-content-lg-start text-white-50 small">
                     <span><i class="fas fa-shield-alt text-success"></i> Escrow Payment</span>
                     <span><i class="fas fa-id-card text-success"></i> Ghana Card Checked</span>
                 </div>
@@ -29,18 +35,18 @@
                     <h5 class="fw-bold mb-3">Who do you need?</h5>
                     <form action="{{ url_for('index') }}" method="GET">
                         <div class="mb-3">
-                            <div class="input-group input-group-lg border rounded-3 overflow-hidden">
-                                <span class="input-group-text bg-white border-0"><i class="fas fa-search text-warning"></i></span>
-                                <input type="text" name="q" class="form-control border-0 shadow-none" placeholder="e.g. Tiler, Glazier..." value="{{ search_query }}">
+                            <div class="input-group rounded-pill border-0 shadow-sm" style="background: #f8f9fa;">
+                                <span class="input-group-text bg-transparent border-0 ps-3"><i class="fas fa-search text-warning"></i></span>
+                                <input type="text" name="q" class="form-control bg-transparent border-0 shadow-none" placeholder="e.g. Tiler, Glazier..." value="{{ search_query }}" style="padding-left: 0;">
                             </div>
                         </div>
                         <div class="mb-3">
-                            <div class="input-group input-group-lg border rounded-3 overflow-hidden">
-                                <span class="input-group-text bg-white border-0"><i class="fas fa-map-marker-alt text-danger"></i></span>
-                                <input type="text" name="loc" class="form-control border-0 shadow-none" placeholder="Location" value="{{ location_query }}">
+                            <div class="input-group rounded-pill border-0 shadow-sm" style="background: #f8f9fa;">
+                                <span class="input-group-text bg-transparent border-0 ps-3"><i class="fas fa-map-marker-alt text-danger"></i></span>
+                                <input type="text" name="loc" class="form-control bg-transparent border-0 shadow-none" placeholder="Location" value="{{ location_query }}" style="padding-left: 0;">
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-warning w-100 btn-lg fw-bold rounded-3">Find Pro</button>
+                        <button type="submit" class="btn btn-warning w-100 btn-lg fw-bold rounded-pill shadow-sm hover-lift">Find Pro</button>
                     </form>
                 </div>
             </div>
@@ -116,7 +122,8 @@
                             <small class="text-muted d-block" style="font-size: 0.7rem;">STARTING FROM</small>
                             <span class="fw-bold text-dark">GH₵ {{ artisan.price_range }}</span>
                         </div>
-<a href="{{ url_for('book_artisan', artisan_id=artisan.id) }}" class="btn btn-warning btn-sm rounded-pill px-3 fw-bold">Book</a>                    </div>
+                        <a href="{{ url_for('book_artisan', artisan_id=artisan.id) }}" class="btn btn-warning btn-sm rounded-pill px-3 fw-bold">Book</a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -136,17 +143,24 @@
 </div>
 
 <style>
+    /* Modern hover effect for button */
+    .hover-lift {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .hover-lift:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(255, 69, 0, 0.3) !important;
+    }
     /* Blink cursor for typing effect */
     .cursor-blink {
         animation: blink 1s infinite;
         font-weight: 300;
-        color: #ccc;
+        color: #fff;
     }
     @keyframes blink {
         0%, 100% { opacity: 1; }
         50% { opacity: 0; }
     }
-
     /* Infinite Marquee */
     .marquee-container {
         white-space: nowrap;
