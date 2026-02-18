@@ -476,7 +476,7 @@ def login():
         password = request.form.get('password')
         
         # Admin login
-        if email == 'ekpebright57@gmail.com' and password == 'Br1ght47':
+        if email == 'ekpebright57@gmail.com' and password == '1234567890':
             session['user_id'] = 999
             session['user_name'] = 'Admin Bright'
             session['role'] = 'admin'
