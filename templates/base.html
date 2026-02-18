@@ -22,6 +22,20 @@
 
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
+   
+    
+    <li class="nav-item">
+        <a class="nav-link fw-bold text-danger" href="{{ url_for('start_project') }}">Start Project</a>
+    </li>
+
+    {% if 'user_id' in session %}
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('my_projects') }}">My Contracts</a>
+        </li>
+        {% else %}
+        {% endif %}
+</ul>
+                <ul class="navbar-nav ms-auto align-items-center">
                     
                     <li class="nav-item"><a class="nav-link text-dark fw-medium mx-2" href="{{ url_for('index') }}">Find Pros</a></li>
                     
@@ -155,6 +169,7 @@
                         </li>
                     {% endif %}
                 </ul>
+                
             </div>
         </div>
     </nav>

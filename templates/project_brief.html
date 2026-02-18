@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .brand-header { background-color: #000; color: #fff; padding: 40px 0; }
+    .form-card { border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+    .btn-brand { background-color: #FF4500; color: white; border: none; padding: 12px 30px; }
+    .btn-brand:hover { background-color: #cc3700; color: white; }
+</style>
+
+<div class="brand-header text-center">
+    <h2>Start Your Project</h2>
+    <p class="lead text-white-50">Tell us what you need. We'll handle the rest.</p>
+</div>
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card form-card p-4">
+                <form method="POST" action="{{ url_for('start_project') }}">
+                    <h4 class="mb-4" style="color: #FF4500;">Project Brief</h4>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Project Type</label>
+                            <select name="project_type" class="form-select" required>
+                                <option value="">Select...</option>
+                                <option>New Construction (Full)</option>
+                                <option>Renovation / Remodeling</option>
+                                <option>Repairs & Maintenance</option>
+                                <option>Interior / Finishing</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Budget Range (GHS)</label>
+                            <select name="budget" class="form-select" required>
+                                <option value="">Select Range...</option>
+                                <option>Under 5,000</option>
+                                <option>5,000 - 20,000</option>
+                                <option>20,000 - 100,000</option>
+                                <option>100,000+</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Location (Town/City)</label>
+                        <input type="text" name="location" class="form-control" placeholder="e.g., East Legon, Accra" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Detailed Description</label>
+                        <textarea name="description" class="form-control" rows="5" placeholder="Describe your vision, specific materials preference, or current site conditions..." required></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Preferred Timeline</label>
+                        <input type="text" name="timeline" class="form-control" placeholder="e.g., Start in 2 weeks, Finish by December">
+                    </div>
+
+                    <div class="alert alert-light border-start border-4 border-warning">
+                        <strong><i class="fas fa-file-contract"></i> Note:</strong> Submitting this brief is a non-binding inquiry. Our team will review your requirements and schedule a consultation call to finalize the contract.
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-brand fw-bold">SUBMIT BRIEF</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{{ url_for('admin_dashboard') }}" class="text-muted text-decoration-none">
+                <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+            </a>
+            <h2 class="fw-bold mt-2">Manage Project: {{ job.job_title }}</h2>
+        </div>
+        <div>
+            <a href="{{ url_for('project_details', job_id=job.id) }}" class="btn btn-outline-primary" target="_blank">
+                <i class="fas fa-external-link-alt me-2"></i> View Client Page
+            </a>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row g-4">
+        
+        <div class="col-md-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-dark text-white fw-bold">
+                    <i class="fas fa-edit me-2"></i> Edit Project Details
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('admin_update_project_details', job_id=job.id) }}" method="POST">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Project Title</label>
+                                <input type="text" name="job_title" class="form-control" value="{{ job.job_title }}" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Status</label>
+                                <select name="status" class="form-select">
+                                    <option value="Pending" {{ 'selected' if job.status == 'Pending' }}>Pending</option>
+                                    <option value="In Progress" {{ 'selected' if job.status == 'In Progress' }}>In Progress</option>
+                                    <option value="Completed" {{ 'selected' if job.status == 'Completed' }}>Completed</option>
+                                    <option value="On Hold" {{ 'selected' if job.status == 'On Hold' }}>On Hold</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Budget (GHS)</label>
+                                <input type="number" name="amount" class="form-control" value="{{ job.amount }}">
+                            </div>
+                            <div class="col-12 text-end">
+                                <button type="submit" class="btn btn-dark btn-sm">Save Changes</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white fw-bold text-success border-bottom">
+                    <i class="fas fa-list-check me-2"></i> Manage Milestones
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-hover mb-4">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Stage Name</th>
+                                <th>Status</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for m in milestones %}
+                            <tr>
+                                <td>{{ m.title }}</td>
+                                <td>
+                                    {% if m.is_completed %}
+                                    <span class="badge bg-success">Done</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <form action="{{ url_for('admin_delete_milestone', m_id=m.id) }}" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-link text-danger p-0" onclick="return confirm('Delete this milestone?')">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="3" class="text-center text-muted">No milestones yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <form action="{{ url_for('add_milestone', job_id=job.id) }}" method="POST">
+                        <input type="hidden" name="source" value="manager"> <div class="input-group">
+                            <input type="text" name="title" class="form-control" placeholder="New Stage (e.g. Painting)..." required>
+                            <button class="btn btn-success" type="submit"><i class="fas fa-plus"></i> Add</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white fw-bold text-warning border-bottom">
+                    <i class="fas fa-camera me-2"></i> Manage Daily Updates
+                </div>
+                <div class="card-body">
+                    
+                    <div class="bg-light p-3 rounded mb-4">
+                        <h6 class="small fw-bold text-muted">POST NEW UPDATE</h6>
+                        <form action="{{ url_for('post_update', job_id=job.id) }}" method="POST" enctype="multipart/form-data">
+                            <input type="hidden" name="source" value="manager">
+                            <div class="mb-2">
+                                <textarea name="description" class="form-control form-control-sm" rows="2" placeholder="What happened today?" required></textarea>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <input type="file" name="photo" class="form-control form-control-sm">
+                                <button type="submit" class="btn btn-warning btn-sm fw-bold">Post</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <h6 class="small fw-bold text-muted">RECENT POSTS (Click X to delete)</h6>
+                    <div class="list-group list-group-flush overflow-auto" style="max_height: 300px;">
+                        {% for up in updates %}
+                        <div class="list-group-item d-flex justify-content-between align-items-start px-0">
+                            <div class="d-flex gap-2">
+                                {% if up.image_url %}
+                                <img src="{{ up.image_url }}" class="rounded" style="width: 50px; height: 50px; object-fit: cover;">
+                                {% else %}
+                                <div class="bg-secondary rounded d-flex align-items-center justify-content-center text-white" style="width: 50px; height: 50px;">
+                                    <i class="fas fa-comment"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <small class="text-muted d-block" style="font-size: 0.7em;">{{ up.created_at[:10] }}</small>
+                                    <span class="small">{{ up.description }}</span>
+                                </div>
+                            </div>
+                            <form action="{{ url_for('admin_delete_update', update_id=up.id) }}" method="POST">
+                                <button type="submit" class="btn btn-link text-danger btn-sm p-0" onclick="return confirm('Remove this update?')">
+                                    <i class="fas fa-times-circle"></i>
+                                </button>
+                            </form>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

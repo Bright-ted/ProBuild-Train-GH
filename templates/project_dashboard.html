@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    :root { --brand-orange: #FF4500; --deep-black: #1a1a1a; }
+    .dashboard-header { background: var(--deep-black); color: white; padding: 2rem 0; }
+    .nav-pills .nav-link.active { background-color: var(--brand-orange); }
+    .nav-pills .nav-link { color: var(--deep-black); }
+    .stat-card { border-left: 4px solid var(--brand-orange); transition: transform 0.2s; }
+    .chat-box { height: 400px; overflow-y: auto; background: #f8f9fa; border: 1px solid #ddd; }
+    .message-bubble { max-width: 80%; padding: 10px 15px; border-radius: 15px; margin-bottom: 10px; }
+    .msg-sent { background: var(--brand-orange); color: white; margin-left: auto; }
+    .msg-received { background: #e9ecef; margin-right: auto; }
+</style>
+
+<div class="dashboard-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h6 class="text-uppercase text-white-50 mb-1">Project Dashboard</h6>
+                <h2 class="fw-bold">{{ job.job_title }}</h2>
+                <span class="badge bg-warning text-dark">{{ job.status }}</span>
+            </div>
+            <div class="text-end d-none d-md-block">
+                <p class="mb-0">Assigned Pro:</p>
+                <div class="d-flex align-items-center gap-2">
+                    <img src="{{ job.artisans.image_url }}" class="rounded-circle" width="40" height="40">
+                    <span class="fw-bold">{{ job.artisans.full_name }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container my-4">
+    <div class="row">
+        <div class="col-lg-3 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist">
+                        <button class="nav-link active text-start p-3" data-bs-toggle="pill" data-bs-target="#tab-overview">
+                            <i class="fas fa-chart-pie me-2"></i> Overview
+                        </button>
+                        <button class="nav-link text-start p-3" data-bs-toggle="pill" data-bs-target="#tab-updates">
+                            <i class="fas fa-camera me-2"></i> Daily Logs
+                        </button>
+                        <button class="nav-link text-start p-3" data-bs-toggle="pill" data-bs-target="#tab-materials">
+                            <i class="fas fa-tools me-2"></i> Materials
+                        </button>
+                        <button class="nav-link text-start p-3" data-bs-toggle="pill" data-bs-target="#tab-contract">
+                            <i class="fas fa-file-signature me-2"></i> Contract
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-3 border-0 shadow-sm">
+                <div class="card-header bg-white fw-bold"><i class="fas fa-comments text-primary"></i> Project Chat</div>
+                <div class="card-body p-0">
+                    <div class="chat-box p-3">
+                        {% for msg in messages %}
+                        <div class="message-bubble {{ 'msg-sent' if msg.sender_id == session.user_id else 'msg-received' }}">
+                            <small class="d-block opacity-75" style="font-size: 0.7em;">{{ msg.users.full_name }}</small>
+                            {{ msg.message }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <form class="p-2 border-top" method="POST" action="{{ url_for('send_chat_message', job_id=job.id) }}">
+                        <div class="input-group">
+                            <input type="text" name="message" class="form-control form-control-sm" placeholder="Type a message...">
+                            <button class="btn btn-sm btn-dark"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-9">
+            <div class="tab-content">
+                
+                <div class="tab-pane fade show active" id="tab-overview">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="card stat-card p-3 shadow-sm h-100">
+                                <h6 class="text-muted">Total Budget</h6>
+                                <h3>GH₵ {{ job.amount }}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card stat-card p-3 shadow-sm h-100" style="border-color: #000;">
+                                <h6 class="text-muted">Timeline</h6>
+                                <h3>On Track</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card stat-card p-3 shadow-sm h-100" style="border-color: #28a745;">
+                                <h6 class="text-muted">Next Milestone</h6>
+                                <h3>Roofing</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-4 border-0 shadow-sm">
+                        <h5>Recent Activity</h5>
+                        <p class="text-muted">No recent major alerts.</p>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tab-updates">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>Site Progress Photos</h4>
+                    </div>
+                    <div class="row g-3">
+                        {% for update in updates %}
+                        <div class="col-md-4">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <img src="{{ update.image_url }}" class="card-img-top" style="height: 200px; object-fit: cover;">
+                                <div class="card-body">
+                                    <small class="text-muted">{{ update.created_at[:10] }}</small>
+                                    <h6 class="card-title">{{ update.title }}</h6>
+                                    <p class="card-text small">{{ update.description }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted">No updates uploaded yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tab-materials">
+                    <div class="card border-0 shadow-sm p-4">
+                        <h4>Material Tracker</h4>
+                        <p class="text-muted small">Transparency record of all materials purchased and used for this project.</p>
+                        <table class="table table-hover mt-3">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Quantity</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in materials %}
+                                <tr>
+                                    <td>{{ item.item_name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td><span class="badge bg-secondary">{{ item.status }}</span></td>
+                                    <td>{{ item.created_at[:10] }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tab-contract">
+                    <div class="card border-0 shadow-sm p-5">
+                        <div class="text-center mb-4">
+                            <i class="fas fa-file-contract fa-3x text-dark mb-3"></i>
+                            <h3>Service Agreement</h3>
+                        </div>
+                        <div class="contract-text bg-light p-4 rounded" style="font-family: 'Times New Roman', serif; font-size: 1.1rem; line-height: 1.6;">
+                            <p><strong>BETWEEN:</strong> ProBuild & Train Ghana (The Contractor) AND <strong>{{ session.full_name }}</strong> (The Client).</p>
+                            
+                            <p><strong>1. SCOPE OF WORK:</strong> The Contractor agrees to perform the construction services as described in the attached Project Brief ("{{ job.job_title }}") located at {{ job.location }}.</p>
+                            
+                            <p><strong>2. PAYMENT TERMS:</strong> Payments shall be made in milestones as agreed upon. The Contractor holds funds in escrow until milestone verification.</p>
+                            
+                            <p><strong>3. DISPUTE RESOLUTION:</strong> Any disputes arising shall be settled through the ProBuild Mediation Center before any legal action.</p>
+                            
+                            <p class="mt-4 text-center"><em>This is a digital representation of your signed agreement.</em></p>
+                        </div>
+                        <div class="mt-4 text-center">
+                            <button class="btn btn-outline-dark"><i class="fas fa-download"></i> Download Signed PDF</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -8,6 +8,7 @@ import random
 from datetime import datetime, timedelta, timezone
 import time
 from werkzeug.utils import secure_filename
+from flask import abort
 
 load_dotenv()
 
@@ -231,6 +232,152 @@ def dashboard():
                          user=user, 
                          active_jobs=active_jobs, 
                          jobs=history_jobs)
+
+
+# ==========================================
+# ADMIN ROUTES
+# ==========================================
+
+@app.route('/admin')
+@admin_required
+def admin_dashboard():
+    """Admin Dashboard - Manage Projects & Artisans"""
+    try:
+        # 1. Fetch Doc Verification Queue
+        pending_artisans = []
+        if supabase:
+            resp = supabase.table('artisans').select("*").eq('is_verified', False).execute()
+            pending_artisans = resp.data if resp.data else []
+        
+        # 2. Fetch Payment Queue
+        pending_payments = []
+        if supabase:
+            resp = supabase.table('artisans').select("*").eq('is_verified', True).eq('subscription_active', False).execute()
+            pending_payments = resp.data if resp.data else []
+        
+        # 3. Fetch Project Requests (The Briefs)
+        project_requests = []
+        if supabase:
+            resp = supabase.table('project_requests').select("*, users(full_name, phone)").eq('status', 'Under Review').execute()
+            project_requests = resp.data if resp.data else []
+        
+        # 4. Fetch Available Artisans (For the dropdown)
+        available_artisans = []
+        if supabase:
+            resp = supabase.table('artisans').select("id, full_name, trade, location")\
+                .eq('status', 'Available')\
+                .eq('subscription_active', True).execute()
+            available_artisans = resp.data if resp.data else []
+
+        # 5. Fetch Active Jobs (THIS WAS MISSING)
+        active_jobs = []
+        if supabase:
+            resp = supabase.table('jobs').select("*, users(full_name), artisans(full_name, image_url)").order('created_at', desc=True).execute()
+            active_jobs = resp.data if resp.data else []
+        
+        # 6. Get counts for dashboard stats
+        verified_count = 0
+        total_pros = 0
+        if supabase:
+            verified_resp = supabase.table('artisans').select("*").eq('is_verified', True).eq('subscription_active', True).execute()
+            verified_count = len(verified_resp.data) if verified_resp.data else 0
+            
+            total_resp = supabase.table('artisans').select("*").execute()
+            total_pros = len(total_resp.data) if total_resp.data else 0
+
+        return render_template('admin_dashboard.html', 
+                             pending_artisans=pending_artisans, 
+                             pending_payments=pending_payments,
+                             project_requests=project_requests,
+                             available_artisans=available_artisans,
+                             active_jobs=active_jobs,  # <--- Critical for the Manage Projects section
+                             verified_count=verified_count,
+                             total_pros=total_pros)
+
+    except Exception as e:
+        print(f"Admin Error: {e}")
+        flash("Error loading dashboard", "error")
+        return redirect(url_for('index'))
+
+@app.route('/admin/assign_job', methods=['POST'])
+@admin_required
+def admin_assign_job():
+    """Handle the assignment of an artisan to a project brief"""
+    try:
+        # Get data from form
+        request_id = request.form.get('request_id')
+        client_id = request.form.get('client_id')
+        artisan_id = request.form.get('artisan_id')
+        amount = request.form.get('final_amount')
+        title = request.form.get('job_title')
+        
+        # Default location fallback
+        location = "Client Site" 
+
+        if supabase:
+            # A. Create the Job (Contract)
+            job_data = {
+                "client_id": client_id,
+                "artisan_id": artisan_id,
+                "job_title": title,
+                "location": location, 
+                "amount": amount,
+                "status": "Pending", # Starts as Pending until Work Starts
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            supabase.table('jobs').insert(job_data).execute()
+
+            # B. Mark the Request as Approved
+            supabase.table('project_requests').update({"status": "Approved"}).eq('id', request_id).execute()
+
+            # C. Mark Artisan as Busy
+            supabase.table('artisans').update({"status": "Busy"}).eq('id', artisan_id).execute()
+
+        flash(f"Contract created successfully! Artisan assigned.", "success")
+        return redirect(url_for('admin_dashboard'))
+
+    except Exception as e:
+        print(f"Assignment Error: {e}")
+        flash("Failed to assign job.", "error")
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/approve/<int:artisan_id>')
+@admin_required
+def admin_approve(artisan_id):
+    """Approve an artisan's documents"""
+    if supabase:
+        try:
+            supabase.table('artisans').update({"is_verified": True}).eq('id', artisan_id).execute()
+            flash("Artisan verified!", "success")
+        except Exception as e:
+            flash(f"Error: {e}", "error")
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/reject/<int:artisan_id>')
+@admin_required
+def admin_reject(artisan_id):
+    """Reject artisan application"""
+    try:
+        if supabase:
+            supabase.table('artisans').delete().eq('id', artisan_id).execute()
+        flash(f"Artisan #{artisan_id} application rejected", "success")
+    except Exception as e:
+        flash(f"Error: {e}", "error")
+    
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/confirm-sub/<int:artisan_id>')
+@admin_required
+def admin_confirm_sub(artisan_id):
+    """Confirm subscription payment"""
+    try:
+        if supabase:
+            supabase.table('artisans').update({'subscription_active': True}).eq('id', artisan_id).execute()
+        flash(f"Artisan #{artisan_id} subscription activated!", "success")
+    except Exception as e:
+        flash(f"Error: {e}", "error")
+    
+    return redirect(url_for('admin_dashboard'))
 
 @app.route('/complete_job/<int:job_id>', methods=['POST'])
 def complete_job(job_id):
@@ -1265,7 +1412,7 @@ def confirm_payment():
         return jsonify({'error': str(e)}), 500
 
 # ==========================================
-# ADMIN ROUTES
+# ADMIN LOGIN ROUTE
 # ==========================================
 
 @app.route('/admin-login', methods=['GET', 'POST'])
@@ -1286,82 +1433,6 @@ def admin_login():
             flash("Invalid admin credentials", "error")
     
     return render_template('admin_login.html')
-
-@app.route('/admin/dashboard')
-@admin_required
-def admin_dashboard():
-    """Admin dashboard"""
-    # Default empty data
-    pending_artisans = []
-    pending_payments = []
-    verified_count = 0
-    total_pros = 0
-    
-    if supabase:
-        try:
-            # Get pending artisans (needs document verification)
-            pending_resp = supabase.table('artisans').select("*").eq('is_verified', False).execute()
-            pending_artisans = pending_resp.data if pending_resp.data else []
-            
-            # Get artisans needing payment (verified but not subscribed)
-            payment_resp = supabase.table('artisans').select("*").eq('is_verified', True).eq('subscription_active', False).execute()
-            pending_payments = payment_resp.data if payment_resp.data else []
-            
-            # Get verified active artisans count
-            verified_resp = supabase.table('artisans').select("*").eq('is_verified', True).eq('subscription_active', True).execute()
-            verified_count = len(verified_resp.data) if verified_resp.data else 0
-            
-            # Get total artisans
-            total_resp = supabase.table('artisans').select("*").execute()
-            total_pros = len(total_resp.data) if total_resp.data else 0
-            
-        except Exception as e:
-            print(f"Admin dashboard error: {e}")
-    
-    return render_template('admin_dashboard.html',
-                         pending_artisans=pending_artisans,
-                         pending_payments=pending_payments,
-                         verified_count=verified_count,
-                         total_pros=total_pros)
-
-@app.route('/admin/approve/<int:artisan_id>')
-@admin_required
-def admin_approve(artisan_id):
-    """Approve artisan documents"""
-    try:
-        if supabase:
-            supabase.table('artisans').update({'is_verified': True}).eq('id', artisan_id).execute()
-        flash(f"Artisan #{artisan_id} documents approved!", "success")
-    except Exception as e:
-        flash(f"Error: {e}", "error")
-    
-    return redirect(url_for('admin_dashboard'))
-
-@app.route('/admin/reject/<int:artisan_id>')
-@admin_required
-def admin_reject(artisan_id):
-    """Reject artisan application"""
-    try:
-        if supabase:
-            supabase.table('artisans').delete().eq('id', artisan_id).execute()
-        flash(f"Artisan #{artisan_id} application rejected", "success")
-    except Exception as e:
-        flash(f"Error: {e}", "error")
-    
-    return redirect(url_for('admin_dashboard'))
-
-@app.route('/admin/confirm-sub/<int:artisan_id>')
-@admin_required
-def admin_confirm_sub(artisan_id):
-    """Confirm subscription payment"""
-    try:
-        if supabase:
-            supabase.table('artisans').update({'subscription_active': True}).eq('id', artisan_id).execute()
-        flash(f"Artisan #{artisan_id} subscription activated!", "success")
-    except Exception as e:
-        flash(f"Error: {e}", "error")
-    
-    return redirect(url_for('admin_dashboard'))
 
 # ==========================================
 # UTILITY ROUTES
@@ -1501,6 +1572,326 @@ def artisan_login():
     
     return redirect(url_for('artisan_login_page'))
 
+# ==========================================
+# CONTRACT & PROJECT ROUTES
+# ==========================================
+
+@app.route('/start-project', methods=['GET', 'POST'])
+def start_project():
+    """Step 1: Client submits a project brief"""
+    if 'user_id' not in session:
+        flash("Please log in to start a project.", "warning")
+        return redirect(url_for('login')) # Assuming you have a login route
+
+    if request.method == 'POST':
+        try:
+            # Collect Form Data
+            project_data = {
+                "client_id": session['user_id'],
+                "project_type": request.form.get('project_type'),
+                "location": request.form.get('location'),
+                "description": request.form.get('description'),
+                "budget_range": request.form.get('budget'),
+                "timeline_preference": request.form.get('timeline'),
+                "status": "Under Review"
+            }
+            
+            # Save to Supabase
+            supabase.table('project_requests').insert(project_data).execute()
+            
+            # Show success/next steps
+            return render_template('project_submitted.html')
+            
+
+        except Exception as e:
+            print(f"Error submitting project: {e}") 
+            # CHANGE THE LINE BELOW:
+            flash(f"System Error: {str(e)}", "error") 
+
+    flash("Project brief submitted! We will contact you soon.", "success")
+    return redirect(url_for('my_projects'))
+
+
+@app.route('/my-projects')
+def my_projects():
+    """List of client's active and pending projects"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    
+    # Fetch Active Jobs (Contracts)
+    active_jobs = []
+    try:
+        response = supabase.table('jobs').select("*, artisans(full_name, image_url)").eq('client_id', user_id).execute()
+        active_jobs = response.data
+    except Exception as e:
+        print(f"Error fetching jobs: {e}")
+
+    # Fetch Pending Requests
+    pending_requests = []
+    try:
+        response = supabase.table('project_requests').select("*").eq('client_id', user_id).execute()
+        pending_requests = response.data
+    except:
+        pass
+
+    return render_template('client_projects_list.html', jobs=active_jobs, requests=pending_requests)
+
+
+@app.route('/project/<int:job_id>')
+def project_dashboard(job_id):
+    """The Main Contract Dashboard"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    # 1. Verify Access (Client or Admin)
+    # In a real app, add a check here to ensure the user owns this job
+
+    # 2. Fetch Job Details
+    try:
+        job_response = supabase.table('jobs').select("*, artisans(*)").eq('id', job_id).single().execute()
+        job = job_response.data
+        
+        # 3. Fetch Updates (Images)
+        updates_response = supabase.table('project_updates').select("*").eq('job_id', job_id).order('created_at', desc=True).execute()
+        updates = updates_response.data
+
+        # 4. Fetch Materials
+        materials_response = supabase.table('project_materials').select("*").eq('job_id', job_id).execute()
+        materials = materials_response.data
+
+        # 5. Fetch Chat Messages
+        messages_response = supabase.table('chat_messages').select("*, users(full_name)").eq('job_id', job_id).order('created_at').execute()
+        messages = messages_response.data
+
+        return render_template('project_dashboard.html', job=job, updates=updates, materials=materials, messages=messages)
+
+    except Exception as e:
+        print(f"Dashboard Error: {e}")
+        flash("Could not load project details.", "error")
+        return redirect(url_for('my_projects'))
+
+
+@app.route('/project/<int:job_id>/send_message', methods=['POST'])
+def send_chat_message(job_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    msg_text = request.form.get('message')
+    if msg_text:
+        data = {
+            "job_id": job_id,
+            "sender_id": session['user_id'],
+            "message": msg_text
+        }
+        supabase.table('chat_messages').insert(data).execute()
+        
+    return redirect(url_for('project_dashboard', job_id=job_id))
+
+
+    # ==========================================
+# PROJECT TRACKING & COLLABORATION ROUTES
+# ==========================================
+
+@app.route('/project/<int:job_id>')
+def project_details(job_id):
+    """The Main Dashboard for a specific project"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+        
+    try:
+        # 1. Get Job Details
+        job = supabase.table('jobs').select("*, artisans(full_name), users(full_name)").eq('id', job_id).single().execute().data
+        
+        # Security Check: Only allow Admin, the Client, or the Artisan to see this
+        if session['role'] != 'admin' and session['user_id'] != job['client_id'] and session['user_id'] != job.get('artisan_id'):
+            flash("Unauthorized access", "error")
+            return redirect(url_for('index'))
+
+        # 2. Fetch Components
+        updates = supabase.table('project_updates').select("*").eq('job_id', job_id).order('created_at', desc=True).execute().data
+        messages = supabase.table('project_chat').select("*").eq('job_id', job_id).order('created_at').execute().data
+        milestones = supabase.table('project_milestones').select("*").eq('job_id', job_id).order('id').execute().data
+        
+        # 3. Calculate Progress %
+        total_m = len(milestones)
+        completed_m = len([m for m in milestones if m['is_completed']])
+        progress_percent = int((completed_m / total_m) * 100) if total_m > 0 else 0
+
+        return render_template('project_details.html', 
+                             job=job, 
+                             updates=updates, 
+                             messages=messages, 
+                             milestones=milestones,
+                             progress_percent=progress_percent)
+    except Exception as e:
+        print(f"Project Error: {e}")
+        flash("Could not load project details.", "error")
+        return redirect(url_for('index'))
+
+@app.route('/project/<int:job_id>/chat', methods=['POST'])
+def send_message(job_id):
+    """Handle chat messages"""
+    try:
+        msg = request.form.get('message')
+        if msg:
+            data = {
+                "job_id": job_id,
+                "sender_id": session['user_id'],
+                "sender_name": session.get('user_name', 'User'),
+                "message": msg,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            supabase.table('project_chat').insert(data).execute()
+    except Exception as e:
+        print(f"Chat Error: {e}")
+    
+    return redirect(url_for('project_details', job_id=job_id))
+
+@app.route('/project/<int:job_id>/update', methods=['POST'])
+@admin_required
+def post_update(job_id):
+    """Admin posts a daily update with optional image"""
+    try:
+        desc = request.form.get('description')
+        file = request.files.get('photo')
+        image_url = None
+
+        # Basic Image Upload Logic (Requires Supabase Storage Bucket named 'updates')
+        if file and file.filename != '':
+            filename = secure_filename(file.filename)
+            file_path = f"job_{job_id}/{int(time.time())}_{filename}"
+            file_content = file.read()
+            
+            # Upload to Supabase Storage
+            # NOTE: Ensure you have a public bucket named 'updates' in Supabase
+            try:
+                res = supabase.storage.from_("updates").upload(file_path, file_content, {"content-type": file.content_type})
+                # Construct Public URL
+                project_url = os.getenv("SUPABASE_URL")
+                image_url = f"{project_url}/storage/v1/object/public/updates/{file_path}"
+            except Exception as upload_error:
+                print(f"Upload failed: {upload_error}")
+                # Fallback: Proceed without image if upload fails
+        
+        # Insert Update Record
+        data = {
+            "job_id": job_id,
+            "description": desc,
+            "image_url": image_url,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        supabase.table('project_updates').insert(data).execute()
+        flash("Update posted!", "success")
+
+    except Exception as e:
+        print(f"Update Error: {e}")
+        flash("Failed to post update.", "error")
+
+    return redirect(url_for('project_details', job_id=job_id))
+
+@app.route('/project/add_milestone/<int:job_id>', methods=['POST'])
+@admin_required
+def add_milestone(job_id):
+    title = request.form.get('title')
+    source = request.form.get('source') # <--- Check for this
+    
+    if title:
+        supabase.table('project_milestones').insert({"job_id": job_id, "title": title}).execute()
+    
+    # Redirect back to manager if source is 'manager'
+    if source == 'manager':
+        return redirect(url_for('admin_manage_project', job_id=job_id))
+        
+    return redirect(url_for('project_details', job_id=job_id))
+
+@app.route('/project/toggle_milestone/<int:milestone_id>', methods=['POST'])
+@admin_required
+def toggle_milestone(milestone_id):
+    """Mark a milestone as complete/incomplete"""
+    try:
+        # Get current status to flip it
+        current = supabase.table('project_milestones').select("is_completed, job_id").eq('id', milestone_id).single().execute().data
+        new_status = not current['is_completed']
+        
+        supabase.table('project_milestones').update({"is_completed": new_status}).eq('id', milestone_id).execute()
+        return redirect(url_for('project_details', job_id=current['job_id']))
+    except:
+        return redirect(url_for('index'))
+
+
+
+# ==========================================
+# ADMIN PROJECT MANAGER ROUTES
+# ==========================================
+
+@app.route('/admin/project/<int:job_id>/manage')
+@admin_required
+def admin_manage_project(job_id):
+    """Dedicated Admin Page for editing a project"""
+    if not supabase: return "DB Error"
+    
+    try:
+        # Fetch all data needed for the editor
+        job = supabase.table('jobs').select("*").eq('id', job_id).single().execute().data
+        updates = supabase.table('project_updates').select("*").eq('job_id', job_id).order('created_at', desc=True).execute().data
+        milestones = supabase.table('project_milestones').select("*").eq('job_id', job_id).order('id').execute().data
+        
+        return render_template('admin_project_manage.html', job=job, updates=updates, milestones=milestones)
+    except Exception as e:
+        flash(f"Error loading manager: {e}", "error")
+        return redirect(url_for('admin_dashboard'))
+
+
+@app.route('/admin/project/<int:job_id>/update_details', methods=['POST'])
+@admin_required
+def admin_update_project_details(job_id):
+    """Update core project info like Status or Budget"""
+    try:
+        data = {
+            "job_title": request.form.get('job_title'),
+            "status": request.form.get('status'),
+            "amount": request.form.get('amount')
+        }
+        supabase.table('jobs').update(data).eq('id', job_id).execute()
+        flash("Project details updated successfully.", "success")
+    except Exception as e:
+        flash(f"Update failed: {e}", "error")
+    
+    return redirect(url_for('admin_manage_project', job_id=job_id))
+
+
+@app.route('/admin/delete_milestone/<int:m_id>', methods=['POST'])
+@admin_required
+def admin_delete_milestone(m_id):
+    """Delete a mistake milestone"""
+    try:
+        # Get job_id before deleting to know where to redirect
+        m = supabase.table('project_milestones').select("job_id").eq('id', m_id).single().execute().data
+        job_id = m['job_id']
+        
+        supabase.table('project_milestones').delete().eq('id', m_id).execute()
+        flash("Milestone removed.", "success")
+        return redirect(url_for('admin_manage_project', job_id=job_id))
+    except:
+        return redirect(url_for('admin_dashboard'))
+
+
+@app.route('/admin/delete_update/<int:update_id>', methods=['POST'])
+@admin_required
+def admin_delete_update(update_id):
+    """Delete a mistake update/photo"""
+    try:
+        # Get job_id before deleting
+        u = supabase.table('project_updates').select("job_id").eq('id', update_id).single().execute().data
+        job_id = u['job_id']
+        
+        supabase.table('project_updates').delete().eq('id', update_id).execute()
+        flash("Update deleted.", "success")
+        return redirect(url_for('admin_manage_project', job_id=job_id))
+    except:
+        return redirect(url_for('admin_dashboard'))
 # ==========================================
 # TEMPLATE FILTERS
 # ==========================================
